@@ -1,0 +1,5 @@
+name: 'simple_2d_data'
+gt_scl_fct: 0.05
+path: '/home/user/SIRF_TORCH/SIRF-SuperBuild/build/INSTALL/share/SIRF-3.1/data/examples/PET/thorax_single_slice'
+poisson_noise: 
+  scl_fct: 100

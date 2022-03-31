@@ -1,0 +1,6 @@
+defaults:
+  - data: simple_2d_data
+  - acquisition_model: simple_acquisition_model
+  - net: unet
+seed: 1
+num_images: 1
