@@ -4,11 +4,9 @@ import datetime
 import torch
 import numpy as np
 import tensorboardX
-from torch.optim import Adam
-from torch.nn import MSELoss, PoissonNLLLoss
+from torch.nn import PoissonNLLLoss
 from hydra.utils import get_original_cwd
 from tqdm import tqdm
-from warnings import warn 
 from .network import UNet
 from .utils import tv_loss, PSNR, normalize
 from copy import deepcopy
@@ -95,7 +93,7 @@ class DeepImagePriorReconstructor():
                 model_out = self.model(self.net_input)
                 output, pre_activation_output = model_out[0], model_out[1].detach()
                 proj_output = self.acquisition_model_module(output)
-                loss = criterion(proj_output, y_delta) 
+                loss = criterion(proj_output, y_delta * self.cfg.data.poisson_noise.scl_fct) 
                 if use_tv_loss: 
                     loss = loss + self.cfg.net.optim.gamma * tv_loss(output)
                 loss.backward()

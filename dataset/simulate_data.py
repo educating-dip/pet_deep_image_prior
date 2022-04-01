@@ -24,14 +24,16 @@ def get_standard_acquisition_model(image, data_template, cfg, attn_image=None):
 
     return acquisition_model
 
-def simulate(image, data_template, acquisition_model, cfg):
+def simulate(image, data_template, acquisition_model, cfg, return_sirf_obj=False):
 
     acquisition_model.set_up(data_template, image)
     acquired_data = acquisition_model.forward(image)
     noisy_acquired_data_array = np.random.poisson(
         cfg.data.poisson_noise.scl_fct * acquired_data.as_array()
-        ).astype('float64')
-    return torch.from_numpy(noisy_acquired_data_array), torch.from_numpy(image.as_array())
+        ).astype('float64') / cfg.data.poisson_noise.scl_fct
+    
+    return ( torch.from_numpy(noisy_acquired_data_array), torch.from_numpy(image.as_array()) ) \
+        if not return_sirf_obj else ( acquired_data.clone().fill(noisy_acquired_data_array), image )
 
 
 def get_data_sirf_standard_object(cfg):
