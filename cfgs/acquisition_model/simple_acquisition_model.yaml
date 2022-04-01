@@ -1,4 +1,4 @@
 set_num_tangential_LORs: 5
 asm_attn: 
   scl_fct: 0.1
-add_background: True
+add_background: False

@@ -20,7 +20,7 @@ def get_standard_acquisition_model(image, data_template, cfg, attn_image=None):
         acquisition_model.set_acquisition_sensitivity(asm_attn)
     
     if cfg.acquisition_model.add_background: 
-        acquisition_model.set_background_term(data_template.get_uniform_copy())
+        raise NotImplementedError
 
     return acquisition_model
 
