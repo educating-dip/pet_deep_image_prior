@@ -6,7 +6,7 @@ from dataset import (
         get_standard_acquisition_model,
         simulate, 
         AcquisitionModelModule, 
-        get_2D_data_sirf_standard_object
+        get_data_sirf_standard_object
         )
 from deep_image_prior import DeepImagePriorReconstructor
 from deep_image_prior.utils import PSNR, SSIM
@@ -15,7 +15,7 @@ from deep_image_prior.utils import PSNR, SSIM
 @hydra.main(config_path='../cfgs', config_name='config')
 def coordinator(cfg : DictConfig) -> None:
 
-    image, attn_image, data_template = get_2D_data_sirf_standard_object(cfg)
+    image, attn_image, data_template = get_data_sirf_standard_object(cfg)
     acquisition_model = get_standard_acquisition_model(
         image,
         data_template,

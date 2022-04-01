@@ -29,21 +29,17 @@ def simulate(image, data_template, acquisition_model, cfg):
     acquisition_model.set_up(data_template, image)
     acquired_data = acquisition_model.forward(image)
     noisy_acquired_data_array = np.random.poisson(
-        cfg.data.poisson_noise.scl_fct * acquired_data.clone().as_array()
+        cfg.data.poisson_noise.scl_fct * acquired_data.as_array()
         ).astype('float64')
-    acquired_data = acquired_data.clone()
-    acquired_data.fill(noisy_acquired_data_array)
-    return torch.from_numpy(acquired_data.as_array()), torch.from_numpy(image.as_array())
+    return torch.from_numpy(noisy_acquired_data_array), torch.from_numpy(image.as_array())
 
 
-def get_2D_data_sirf_standard_object(cfg):
+def get_data_sirf_standard_object(cfg):
 
     image = pet.ImageData(
         os.path.join(cfg.data.path, 'emission.hv')
         )
-    image_array = image.as_array()
-    image_array *= cfg.data.gt_scl_fct
-    image.fill(image_array)
+    image *= cfg.data.gt_scl_fct
     attn_image = pet.ImageData(
         os.path.join(cfg.data.path, 'attenuation.hv')
         )
