@@ -1,0 +1,4 @@
+name: QP
+initial: True
+kappa: True
+penalty_factor: 0.0

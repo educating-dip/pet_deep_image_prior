@@ -1,0 +1,5 @@
+name: RDP
+initial: True
+kappa: True
+penalty_factor: 0.0
+gamma: 0.0

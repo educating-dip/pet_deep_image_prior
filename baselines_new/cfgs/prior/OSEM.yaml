@@ -1,0 +1,8 @@
+name: osem
+obj_fun: poisson
+quadratic_prior:
+  active: False
+  gamma: 0.1
+impl: 
+  num_subsets: 1
+  num_subiters: 60
