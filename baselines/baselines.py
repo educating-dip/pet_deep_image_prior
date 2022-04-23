@@ -30,8 +30,6 @@ def normalize(x, inplace=False):
         x = x / x.max()
     return x
 
-
-
 @hydra.main(config_path='cfgs', config_name='config')
 def baselines(cfg : DictConfig) -> None:
 
@@ -106,8 +104,6 @@ def baselines(cfg : DictConfig) -> None:
     # INITIALISE THE RECONSTRUCTION OBJECT
     sirf_reconstruction.set_up(image)
     sirf_reconstruction.set_current_estimate(initial)
-    #sirf_reconstruction.process()
-
 
     current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
     comment = cfg.prior.name
@@ -116,6 +112,7 @@ def baselines(cfg : DictConfig) -> None:
         current_time + '_' + socket.gethostname() + comment)
     writer = tensorboardX.SummaryWriter(logdir=logdir)
 
+    # TO DO GET THE QUALITY METRICS
     current_image = initial
     for i in range(0, cfg.dataset.num_subsets*cfg.dataset.num_epochs + 1):
         sirf_reconstruction.update(current_image)

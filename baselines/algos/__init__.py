@@ -1,1 +1,0 @@
-from .osem import osem 

@@ -4,6 +4,9 @@ hydra:
   sweep:
     dir: ./${dataset.name}/${prior.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}
     subdir: ${hydra.job.override_dirname}
+      exclude_keys:
+        - dataset.name
+        - prior.name
 
 defaults:
   - dataset: 2D
