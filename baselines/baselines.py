@@ -3,7 +3,6 @@ import hydra
 from omegaconf import DictConfig
 import os
 import sirf.STIR as pet
-import sirf.STIR
 import datetime 
 import socket
 import numpy
@@ -30,9 +29,10 @@ def normalize(x, inplace=False):
         x = x / x.max()
     return x
 
+
 @hydra.main(config_path='cfgs', config_name='config')
 def baselines(cfg : DictConfig) -> None:
-
+    
     # GET THE DATA
     prompts = pet.AcquisitionData(cfg.dataset.prompts)
     prompts.set_storage_scheme("memory")
@@ -60,30 +60,31 @@ def baselines(cfg : DictConfig) -> None:
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_functional = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_functional.set_recompute_sensitivity(1)
-
+    initial = image.clone()
     # SET THE PRIOR
-    print(cfg.prior.name)
-    if cfg.prior.name == "osem":
+    if cfg.prior.name == "OSEM":
         initial = image
         print("Just plain old OSEM")
-    elif cfg.prior.name == "qp":
+    elif cfg.prior.name == "QP":
         prior = pet.QuadraticPrior()
         print('using Quadratic prior...')
         prior.set_penalisation_factor(cfg.prior.penalty_factor)
         if cfg.prior.initial == True:
-            initial = pet.ImageData(cfg.dataset.initial)
+            # initial = image.fill(pet.ImageData(cfg.dataset.initial))
+            raise NotImplementedError
         if cfg.prior.kappa == True:
             kappa = pet.ImageData(cfg.dataset.kappa)
             prior.set_kappa(image.fill(kappa))
             objective_functional.set_prior(prior)
         prior.set_up(image)
-    elif cfg.prior.name == "rdp":
+    elif cfg.prior.name == "RDP":
         prior = pet.RelativeDifferencePrior()
         print('using Relative Difference prior...')
         prior.set_penalisation_factor(cfg.prior.penalty_factor)
         prior.set_gamma(cfg.prior.gamma)
         if cfg.prior.initial == True:
-            initial = pet.ImageData(cfg.dataset.initial)
+            # initial = image.fill(pet.ImageData(cfg.dataset.initial))
+            raise NotImplementedError
         if cfg.prior.kappa == True:
             kappa = pet.ImageData(cfg.dataset.kappa)
             prior.set_kappa(image.fill(kappa))
@@ -91,7 +92,6 @@ def baselines(cfg : DictConfig) -> None:
         prior.set_up(image)
     else:
         raise NotImplementedError
-
 
     # CREATE RECONSTRUCTION OBJECT
     sirf_reconstruction = pet.OSMAPOSLReconstructor()
@@ -117,10 +117,6 @@ def baselines(cfg : DictConfig) -> None:
     for i in range(0, cfg.dataset.num_subsets*cfg.dataset.num_epochs + 1):
         sirf_reconstruction.update(current_image)
         writer.add_image('recon', normalize(current_image.as_array()), i)
-    
-        """ if ground_truth is not None:
-            output_psnr = PSNR(curr_image.as_array()[0], ground_truth.as_array()[0])
-            writer.add_scalar('output_psnr', output_psnr, i) """
 
     writer.close()
 

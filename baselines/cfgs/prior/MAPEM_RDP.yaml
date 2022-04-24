@@ -1,5 +1,5 @@
 name: RDP
-initial: True
+initial: False
 kappa: True
 penalty_factor: 0.0
 gamma: 0.0
