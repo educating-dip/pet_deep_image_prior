@@ -9,4 +9,4 @@ kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/
 image_xy: 251
 num_LORs: 10
 num_subsets: 4
-num_epochs: 10
+num_epochs: 50

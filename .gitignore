@@ -130,11 +130,7 @@ dmypy.json
 
 # folder
 
-outputs/
-FIPS_Lotus/
-reference_params/
-multirun/
-src/evaluation/scripts/images/
+experiments/baselines/
 
 #.pdf file
 *.pdf

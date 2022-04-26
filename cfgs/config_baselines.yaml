@@ -1,0 +1,16 @@
+hydra:
+  run:
+    dir: ./baselines/${dataset.name}/${dataset.count}/${prior.name}
+  sweep:
+    dir: ./baselines/${dataset.name}/${dataset.count}/${prior.name}
+    subdir: ${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - dataset
+          - prior
+
+defaults:
+  - dataset: 2D_low
+  - prior: OSEM

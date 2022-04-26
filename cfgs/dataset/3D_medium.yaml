@@ -9,4 +9,4 @@ kappa: /home/user/sirf_stir_priors/pet_deep_image_prior/notebook_WIP/convert_to_
 image_xy: 251
 num_LORs: 10
 num_subsets: 4
-num_epochs: 10
+num_epochs: 20
