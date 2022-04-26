@@ -131,6 +131,7 @@ dmypy.json
 # folder
 
 experiments/baselines/
+experiments/main/
 
 #.pdf file
 *.pdf

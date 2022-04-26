@@ -1,64 +1,24 @@
 import os
+import sys
 import hydra
 from omegaconf import DictConfig
 import os
 import sirf.STIR as pet
 import datetime 
 import socket
-import numpy
 import tensorboardX
 import numpy as np
+
+sys.path.append(
+    os.path.dirname(
+        os.getcwd()
+        )
+    )
+
+from src import ComputeImageMetrics, normalize
+
+
 pet.set_verbosity(0)
-
-def PSNR(reconstruction, ground_truth, data_range=None):
-    gt = np.asarray(ground_truth)
-    mse = np.mean((np.asarray(reconstruction) - gt)**2)
-    if mse == 0.:
-        return float('inf')
-    if data_range is not None:
-        return 20*np.log10(data_range) - 10*np.log10(mse)
-    else:
-        data_range = np.max(gt) - np.min(gt)
-        return 20*np.log10(data_range) - 10*np.log10(mse)
-
-def normalize(x, inplace=False):
-    # Exploding pixel at edge of FOV we need to ignore...
-    mask = numpy.zeros_like(x)
-    mask[:,50:201, 50:201] = 1
-    x = mask*x
-    if inplace:
-        x -= x.min()
-        x /= x.max()
-    else:
-        x = x - x.min()
-        x = x / x.max()
-    return x
-
-def CRC(ROIs_b, ROIs_a, recon, emissions):
-    # CONTRAST RECOVERY COEFFICIENT
-    # abar = ROI average uptake
-    # Ka = number of ROIs
-    # bbar = background average uptake
-    # Kb = number of background ROIs
-    # CRC = 1/R \sum_{r=1}^{R} (abar/bbar - 1)/(atrue/btrue - 1)
-    CRCval = 0
-    for i in range(len(ROIs_a)):
-        abar = np.mean(recon[np.nonzero(ROIs_a[i])])
-        bbar = np.mean(recon[np.nonzero(ROIs_b)])
-        atrue = emissions[i]
-        btrue = emissions[-1]
-        CRCval += (abar/bbar - 1) / (atrue/btrue - 1)
-    return CRCval/len(ROIs_a)
-
-def STD(ROIs_b, recon):
-    # STANDARD DEVIATION
-    # abar = ROI average uptake
-    # Ka = number of ROIs
-    # bbar = background average uptake
-    # Kb = number of background ROIs
-    # CRC = 1/R \sum_{r=1}^{R} (abar/bbar - 1)/(atrue/btrue - 1)
-    return np.std(recon[np.nonzero(ROIs_b)])
-
 
 @hydra.main(config_path='../cfgs', config_name='config_baselines')
 def baselines(cfg : DictConfig) -> None:
@@ -140,28 +100,56 @@ def baselines(cfg : DictConfig) -> None:
 
     # SETUP THE QUALITY METRICS
     if cfg.dataset.name == "2D":
+
         ROIs = ["ROI_LungLesion"] # ["ROI_Heart"] #
         ROIs_masks = []
-        ROIs_b_mask = np.load(cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy")
+        ROIs_b_mask = np.load(
+            cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy"
+        )
+
         for i in range(len(ROIs)):
-            ROIs_masks.append(np.load(cfg.dataset.quality_path + "/" + ROIs[i] + ".npy"))
+            ROIs_masks.append(np.load(
+                cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
+                )
+        
         # Heart 2897.9812, LungLeison 3254.626, Lung 1254.6259
-        emissions = [3254.626,1254.6259]
+        emissions = [3254.626, 1254.6259]
+        image_metrics = ComputeImageMetrics(
+            emissions=emissions,
+            ROIs_a=ROIs_masks,
+            ROIs_b=ROIs_b_mask
+        )
+        
     elif cfg.dataset.name == "3D":
+
         ROIs = ["ROI_AbdominalWallLesion","ROI_HeartLesion","ROI_LiverLesion","ROI_LungLesion","ROI_SpineLesion"]
         ROIs_masks = []
         ROIs_b_mask = np.load(cfg.dataset.quality_path + "/" + "ROI_Liver" + ".npy")
         for i in range(len(ROIs)):
-            ROIs_masks.append(np.load(cfg.dataset.quality_path + "/" + ROIs[i] + ".npy"))
+            ROIs_masks.append(np.load(
+                cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
+            )
         emissions = [2897.9812,3254.626,1254.6259,0]
+        
+        image_metrics = ComputeImageMetrics(
+            emissions=emissions,
+            ROIs_a=ROIs_masks,
+            ROIs_b=ROIs_b_mask
+        )
 
     # TO DO GET THE QUALITY METRICS
     current_image = initial
     for i in range(0, cfg.dataset.num_subsets*cfg.dataset.num_epochs + 1):
-        sirf_reconstruction.update(current_image)
+        sirf_reconstruction.update(
+            current_image
+            )
+        (crc, std) = image_metrics.get_all_metrics(
+            current_image.as_array()
+            )
+
         writer.add_image('recon', normalize(current_image.as_array()), i)
-        writer.add_scalar("CRC",CRC(ROIs_b_mask, ROIs_masks,current_image.as_array(), emissions),i)
-        writer.add_scalar("STDEV", STD(ROIs_b_mask,current_image.as_array()),i)
+        writer.add_scalar('CRC', crc, i)
+        writer.add_scalar('STDEV', std, i)
 
     writer.close()
 

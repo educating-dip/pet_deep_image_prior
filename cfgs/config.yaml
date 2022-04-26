@@ -1,6 +1,19 @@
+hydra:
+  run:
+    dir: ./main/${dataset.name}/${dataset.count}/${prior.name}
+  sweep:
+    dir: ./main/${dataset.name}/${dataset.count}/${prior.name}
+    subdir: ${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - dataset
+          - prior
+
 defaults:
-  - data: simple_2d_data
-  - acquisition_model: simple_acquisition_model
+  - dataset: 2D_high
+  - prior: OSEM
   - net: unet
 seed: 1
 num_images: 1

@@ -12,12 +12,10 @@ def get_unet_model(in_ch=1, out_ch=1, scales=5, skip=4,
                 use_norm=use_norm)
 
 class UNet(nn.Module):
-    def __init__(self, in_ch, out_ch, channels, skip_channels,
-                 use_relu=True, use_norm=True):
+    def __init__(self, in_ch, out_ch, channels, skip_channels, use_norm=True):
         super(UNet, self).__init__()
         assert (len(channels) == len(skip_channels))
         self.scales = len(channels)
-        self.use_relu = use_relu
         self.down = nn.ModuleList()
         self.up = nn.ModuleList()
         self.inc = InBlock(in_ch, channels[0], use_norm=use_norm)
@@ -41,10 +39,9 @@ class UNet(nn.Module):
         for i in range(self.scales - 1):
             x = self.up[i](x, xs[-2 - i])
         out = self.outc(x)
-        return (torch.nn.functional.relu(out), out) if self.use_relu else (out,
-                out)
+        return torch.nn.functional.relu(out)
             
-
+            
 class DownBlock(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size=3, num_groups=4, use_norm=True):
         super(DownBlock, self).__init__()
