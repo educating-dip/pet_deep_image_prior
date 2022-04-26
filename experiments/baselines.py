@@ -101,7 +101,7 @@ def baselines(cfg : DictConfig) -> None:
     # SETUP THE QUALITY METRICS
     if cfg.dataset.name == "2D":
 
-        ROIs = ["ROI_LungLesion"] # ["ROI_Heart"] #
+        ROIs = ["ROI_Heart"] # ["ROI_LungLesion"] # 
         ROIs_masks = []
         ROIs_b_mask = np.load(
             cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy"
@@ -113,12 +113,7 @@ def baselines(cfg : DictConfig) -> None:
                 )
         
         # Heart 2897.9812, LungLeison 3254.626, Lung 1254.6259
-        emissions = [3254.626, 1254.6259]
-        image_metrics = ComputeImageMetrics(
-            emissions=emissions,
-            ROIs_a=ROIs_masks,
-            ROIs_b=ROIs_b_mask
-        )
+        emissions = [2897.9812, 1254.6259]
         
     elif cfg.dataset.name == "3D":
 
@@ -131,11 +126,11 @@ def baselines(cfg : DictConfig) -> None:
             )
         emissions = [2897.9812,3254.626,1254.6259,0]
         
-        image_metrics = ComputeImageMetrics(
-            emissions=emissions,
-            ROIs_a=ROIs_masks,
-            ROIs_b=ROIs_b_mask
-        )
+    image_metrics = ComputeImageMetrics(
+        emissions=emissions,
+        ROIs_a=ROIs_masks,
+        ROIs_b=ROIs_b_mask
+    )
 
     # TO DO GET THE QUALITY METRICS
     current_image = initial
