@@ -132,6 +132,8 @@ dmypy.json
 
 experiments/baselines/
 experiments/main/
+experiments/test_baselines/
+experiments/test_main/
 notebook_WIP/
 
 #.pdf file

@@ -1,6 +1,6 @@
 hydra:
   run:
-    dir: ./main/${dataset.name}/${dataset.count}/${prior.name}
+    dir: ./test_main/${dataset.name}/${dataset.count}/${prior.name}
   sweep:
     dir: ./main/${dataset.name}/${dataset.count}/${prior.name}
     subdir: ${hydra.job.override_dirname}

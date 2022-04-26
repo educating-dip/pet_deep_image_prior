@@ -46,6 +46,8 @@ def baselines(cfg : DictConfig) -> None:
     acquisition_model.set_up(prompts,image)
     acquisition_model.set_additive_term(additive_factors)
     acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
+    ray_tracing = acquisition_model.get_matrix().set_restrict_to_cylindrical_FOV(False)
+    acquisition_model.set_matrix(ray_tracing)
 
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_functional = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
