@@ -97,19 +97,18 @@ class DeepImagePriorReconstructor():
                     best_loss = loss.item()
                     best_output = output.detach()
 
-                # crc, stdev = image_metrics.get_all_metrics(
-                #     output[0, ...].detach().cpu().numpy()
-                #     )
-            
                 self.writer.add_scalar('loss', loss.item(),  i)
-
-                # self.writer.add_scalar('crc', crc, i)
-                # self.writer.add_scalar('stdev', stdev, i)
-
                 if i % 100 == 0:
                     self.writer.add_image('reco', normalize(
                         best_output[0, ...].cpu().numpy() 
                         ), i)
+
+                if i  > 2500:
+                    crc, stdev = image_metrics.get_all_metrics(
+                        output[0, ...].detach().cpu().numpy()
+                        )
+                    self.writer.add_scalar('crc', crc, i)
+                    self.writer.add_scalar('stdev', stdev, i)
 
         self.model.load_state_dict(best_params_state_dict)
         self.writer.close()

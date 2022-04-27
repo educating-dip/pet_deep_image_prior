@@ -4,7 +4,7 @@ arch:
   skip_channels: [0, 0, 4, 4]
   use_norm: True
 optim:
-  lr: 5e-4
+  lr: 1e-3
   iterations: 10000
   loss_function: poisson
 show_pbar: True

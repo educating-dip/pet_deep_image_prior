@@ -44,6 +44,8 @@ def baselines(cfg : DictConfig) -> None:
     acquisition_model.set_up(prompts,image)
     acquisition_model.set_additive_term(additive_factors)
     acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
+    ray_tracing = acquisition_model.get_matrix().set_restrict_to_cylindrical_FOV(False)
+    acquisition_model.set_matrix(ray_tracing)
 
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_functional = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
@@ -87,7 +89,7 @@ def baselines(cfg : DictConfig) -> None:
     # SETUP THE QUALITY METRICS
     if cfg.dataset.name == "2D":
 
-        ROIs = ["ROI_LungLesion"] # ["ROI_Heart"] #
+        ROIs =  ["ROI_Heart"] #["ROI_LungLesion"] #
         ROIs_masks = []
         ROIs_b_mask = np.load(
             cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy"
@@ -98,13 +100,8 @@ def baselines(cfg : DictConfig) -> None:
                 cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
                 )
         
-        # Heart 2897.9812, LungLeison 3254.626, Lung 1254.6259
-        emissions = [3254.626, 1254.6259]
-        image_metrics = ComputeImageMetrics(
-            emissions=emissions,
-            ROIs_a=ROIs_masks,
-            ROIs_b=ROIs_b_mask
-        )
+        # Heart , LungLeison 3254.626, Lung 1254.6259
+        emissions = [2897.9812, 1254.6259]
         
     elif cfg.dataset.name == "3D":
 
@@ -117,11 +114,11 @@ def baselines(cfg : DictConfig) -> None:
             )
         emissions = [2897.9812,3254.626,1254.6259,0]
         
-        image_metrics = ComputeImageMetrics(
-            emissions=emissions,
-            ROIs_a=ROIs_masks,
-            ROIs_b=ROIs_b_mask
-        )
+    image_metrics = ComputeImageMetrics(
+        emissions=emissions,
+        ROIs_a=ROIs_masks,
+        ROIs_b=ROIs_b_mask
+    )
     
 
     reconstructor = DeepImagePriorReconstructor(
