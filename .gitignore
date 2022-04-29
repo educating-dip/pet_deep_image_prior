@@ -131,6 +131,7 @@ dmypy.json
 # folder
 
 experiments/baselines/
+experiments/baselines_50_epochs/
 experiments/main/
 experiments/test_baselines/
 experiments/test_main/

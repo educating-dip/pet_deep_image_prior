@@ -90,7 +90,7 @@ def baselines(cfg : DictConfig) -> None:
     sirf_reconstruction.set_objective_function(objective_functional)
     num_subsets = cfg.dataset.num_subsets
     num_subiterations = cfg.dataset.num_subsets*cfg.dataset.num_epochs
-    sirf_reconstruction.set_num_subsets(num_subsets)
+    sirf_reconstruction.set_num_subsets(num_subsets)                        
     sirf_reconstruction.set_num_subiterations(num_subiterations)
 
     # INITIALISE THE RECONSTRUCTION OBJECT

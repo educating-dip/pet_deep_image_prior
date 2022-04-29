@@ -100,18 +100,26 @@ class DeepImagePriorReconstructor():
                 self.writer.add_scalar('loss', loss.item(),  i)
                 if i % 100 == 0:
                     self.writer.add_image('reco', normalize(
-                        best_output[0, ...].cpu().numpy() 
+                        output[0, ...].detach().cpu().numpy() 
                         ), i)
-
-                if i  > 2500:
-                    crc, stdev = image_metrics.get_all_metrics(
-                        best_output[0, ...].detach().cpu().numpy()
-                        )
-                    self.writer.add_scalar('crc', crc, i)
-                    self.writer.add_scalar('stdev', stdev, i)
+                    if i  > 2500:
+                        crc, stdev = image_metrics.get_all_metrics(
+                            output[0, ...].detach().cpu().numpy()
+                            )
+                        self.writer.add_scalar('crc', crc, i)
+                        self.writer.add_scalar('stdev', stdev, i)
 
         self.model.load_state_dict(best_params_state_dict)
         self.writer.close()
+        
+        crc, stdev = image_metrics.get_all_metrics(
+            best_output[0, ...].detach().cpu().numpy()
+            )
+        row_lesion = 139
+        np.save('recon', best_output[0,0,...].detach().cpu().numpy())
+        np.save('profile', best_output[0,0, row_lesion, :].detach().cpu().numpy())
+        np.save('crc',crc)
+        np.save('std_dev',stdev)
 
         return best_output[0, 0, ...].cpu().numpy()
 
