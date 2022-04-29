@@ -1,12 +1,11 @@
 arch:
   scales: 4
   channels: [128, 128, 128, 128]
-  skip_channels: [0, 0, 4, 4]
+  skip_channels: [0, 0, 0, 0]
   use_norm: True
 optim:
   lr: 1e-3
-  iterations: 10000
-  loss_function: poisson
+  iterations: 30000
 show_pbar: True
 torch_manual_seed: 10
 log_path: ./

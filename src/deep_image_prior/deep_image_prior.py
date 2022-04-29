@@ -47,7 +47,6 @@ class DeepImagePriorReconstructor():
 
         if init_model: 
             self.init_model()
-
         if self.cfgs.net.load_pretrain_model:
             path = os.path.join(
                 get_original_cwd(),
@@ -80,10 +79,11 @@ class DeepImagePriorReconstructor():
                 self.optimizer.zero_grad()
                 output = self.model(self.net_input)
 
-                loss = - torch.log( self.obj_fun_module(
+                loss = - torch.log(self.obj_fun_module(
                     output
                     )
                 )
+
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 if loss.item() < best_loss:
@@ -105,7 +105,7 @@ class DeepImagePriorReconstructor():
 
                 if i  > 2500:
                     crc, stdev = image_metrics.get_all_metrics(
-                        output[0, ...].detach().cpu().numpy()
+                        best_output[0, ...].detach().cpu().numpy()
                         )
                     self.writer.add_scalar('crc', crc, i)
                     self.writer.add_scalar('stdev', stdev, i)

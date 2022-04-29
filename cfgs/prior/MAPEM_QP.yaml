@@ -1,4 +1,4 @@
 name: QP
-initial: True
-kappa: True
+initial: False
+kappa: False
 penalty_factor: 0.0

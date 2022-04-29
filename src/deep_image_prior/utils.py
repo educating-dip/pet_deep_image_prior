@@ -18,7 +18,15 @@ class ComputeImageMetrics:
     def __init__(self, emissions, ROIs_a, ROIs_b):
 
         self.emissions = emissions
-        self.ROIs_a = ROIs_a
+        
+        def _threshold_ROI_mask(ROIs_mask):
+
+            for i in range(len(ROIs_mask)):
+                ROIs_mask[i][ROIs_mask[i] < 1] = 0
+            return ROIs_mask
+            
+        self.ROIs_a = _threshold_ROI_mask(ROIs_a)
+        ROIs_b[ROIs_b>0] = 1
         self.ROIs_b = ROIs_b
     
     def _compute_std(self, x):

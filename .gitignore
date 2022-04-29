@@ -142,3 +142,6 @@ notebook_WIP/
 *.json
 events.out.tf*
 *.txt
+*.npy
+*.sh
+*.ipynb

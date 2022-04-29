@@ -25,12 +25,16 @@ def baselines(cfg : DictConfig) -> None:
     
     # GET THE DATA
     prompts = pet.AcquisitionData(cfg.dataset.prompts)
-    prompts.set_storage_scheme("memory")
+    prompts.set_storage_scheme('memory')
     additive_factors = pet.AcquisitionData(cfg.dataset.additive)
     multiplicative_factors = pet.AcquisitionData(cfg.dataset.multiplicative)
     
-    # GET RECONSTRUCTION "VOLUME"
-    image = prompts.create_uniform_image(1.0,cfg.dataset.image_xy)
+    # GET RECONSTRUCTION 'VOLUME'
+    image = prompts.create_uniform_image(1.0).zoom_image(
+            zooms=(1., 1., 1.),
+            offsets_in_mm=(0., 0., 0.),
+            size=(-1, cfg.dataset.image_xy, cfg.dataset.image_xy)
+        )
 
     # SET UP THE SENSITIVITY MODEL
     normalisation_model = pet.AcquisitionSensitivityModel(multiplicative_factors)
@@ -39,15 +43,12 @@ def baselines(cfg : DictConfig) -> None:
     normalisation_model.normalise(sensitivity_vals)
     sensitivity_factors = pet.AcquisitionSensitivityModel(sensitivity_vals)
     sensitivity_factors.set_up(prompts)
-
+    
     # SET UP THE ACQUISITION MODEL
-    acquisition_model = pet.AcquisitionModelUsingRayTracingMatrix()
-    acquisition_model.set_num_tangential_LORs(cfg.dataset.num_LORs)
+    acquisition_model = pet.AcquisitionModelUsingParallelproj()
     acquisition_model.set_up(prompts,image)
     acquisition_model.set_additive_term(additive_factors)
     acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
-    ray_tracing = acquisition_model.get_matrix().set_restrict_to_cylindrical_FOV(False)
-    acquisition_model.set_matrix(ray_tracing)
 
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_functional = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
@@ -55,10 +56,10 @@ def baselines(cfg : DictConfig) -> None:
     initial = image.clone()
 
     # SET THE PRIOR
-    if cfg.prior.name == "OSEM":
+    if cfg.prior.name == 'OSEM':
         initial = image
-        print("Just plain old OSEM")
-    elif cfg.prior.name == "QP":
+        print('Just plain old OSEM')
+    elif cfg.prior.name == 'QP':
         prior = pet.QuadraticPrior()
         print('using Quadratic prior...')
         prior.set_penalisation_factor(cfg.prior.penalty_factor)
@@ -69,7 +70,7 @@ def baselines(cfg : DictConfig) -> None:
             prior.set_kappa(image.clone().fill(kappa))
         prior.set_up(image)
         objective_functional.set_prior(prior)
-    elif cfg.prior.name == "RDP":
+    elif cfg.prior.name == 'RDP':
         prior = pet.RelativeDifferencePrior()
         print('using Relative Difference prior...')
         prior.set_penalisation_factor(cfg.prior.penalty_factor)
@@ -101,30 +102,29 @@ def baselines(cfg : DictConfig) -> None:
     writer = tensorboardX.SummaryWriter(logdir=logdir)
 
     # SETUP THE QUALITY METRICS
-    if cfg.dataset.name == "2D":
-
-        ROIs = ["ROI_Heart"] # ["ROI_LungLesion"] # 
+    if cfg.dataset.name == '2D':
+        ROIs =  ['ROI_LungLesion'] # ['ROI_Heart'] #
         ROIs_masks = []
         ROIs_b_mask = np.load(
-            cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy"
+            cfg.dataset.quality_path + '/' + 'ROI_Lung' + '.npy'
         )
 
         for i in range(len(ROIs)):
             ROIs_masks.append(np.load(
-                cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
+                cfg.dataset.quality_path + '/' + ROIs[i] + '.npy')
                 )
         
         # Heart 2897.9812, LungLeison 3254.626, Lung 1254.6259
-        emissions = [2897.9812, 1254.6259]
+        emissions = [3254.626, 1254.6259]
         
-    elif cfg.dataset.name == "3D":
+    elif cfg.dataset.name == '3D':
 
-        ROIs = ["ROI_AbdominalWallLesion","ROI_HeartLesion","ROI_LiverLesion","ROI_LungLesion","ROI_SpineLesion"]
+        ROIs = ['ROI_AbdominalWallLesion','ROI_HeartLesion','ROI_LiverLesion','ROI_LungLesion','ROI_SpineLesion']
         ROIs_masks = []
-        ROIs_b_mask = np.load(cfg.dataset.quality_path + "/" + "ROI_Liver" + ".npy")
+        ROIs_b_mask = np.load(cfg.dataset.quality_path + '/' + 'ROI_Liver' + '.npy')
         for i in range(len(ROIs)):
             ROIs_masks.append(np.load(
-                cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
+                cfg.dataset.quality_path + '/' + ROIs[i] + '.npy')
             )
         emissions = [2897.9812,3254.626,1254.6259,0]
         
@@ -137,6 +137,12 @@ def baselines(cfg : DictConfig) -> None:
     # TO DO GET THE QUALITY METRICS
     current_image = initial
     for i in range(0, cfg.dataset.num_subsets*cfg.dataset.num_epochs + 1):
+
+        writer.add_image('recon', 
+            normalize(
+                current_image.as_array()
+            ), i)
+
         sirf_reconstruction.update(
             current_image
             )
@@ -144,10 +150,14 @@ def baselines(cfg : DictConfig) -> None:
             current_image.as_array()
             )
 
-        writer.add_image('recon', normalize(current_image.as_array()), i)
         writer.add_scalar('CRC', crc, i)
         writer.add_scalar('STDEV', std, i)
 
+    if cfg.dataset.name == '2D': 
+        row_lesion = 139
+        np.save('profile', current_image.as_array()[0, row_lesion, :])
+
+    np.save('recon', current_image.as_array())
     writer.close()
 
 if __name__ == '__main__':

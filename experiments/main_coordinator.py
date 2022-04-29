@@ -28,7 +28,11 @@ def baselines(cfg : DictConfig) -> None:
     multiplicative_factors = pet.AcquisitionData(cfg.dataset.multiplicative)
     
     # GET RECONSTRUCTION "VOLUME"
-    image = prompts.create_uniform_image(1.0,cfg.dataset.image_xy)
+    image = prompts.create_uniform_image(1.0).zoom_image(
+            zooms=(1., 1., 1.),
+            offsets_in_mm=(0., 0., 0.),
+            size=(-1, cfg.dataset.image_xy, cfg.dataset.image_xy)
+        )
 
     # SET UP THE SENSITIVITY MODEL
     normalisation_model = pet.AcquisitionSensitivityModel(multiplicative_factors)
@@ -39,14 +43,12 @@ def baselines(cfg : DictConfig) -> None:
     sensitivity_factors.set_up(prompts)
 
     # SET UP THE ACQUISITION MODEL
-    acquisition_model = pet.AcquisitionModelUsingRayTracingMatrix()
-    acquisition_model.set_num_tangential_LORs(cfg.dataset.num_LORs)
+    acquisition_model = pet.AcquisitionModelUsingParallelproj()
     acquisition_model.set_up(prompts,image)
     acquisition_model.set_additive_term(additive_factors)
     acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
-    ray_tracing = acquisition_model.get_matrix().set_restrict_to_cylindrical_FOV(False)
-    acquisition_model.set_matrix(ray_tracing)
 
+    
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_functional = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_functional.set_recompute_sensitivity(1)
@@ -89,7 +91,7 @@ def baselines(cfg : DictConfig) -> None:
     # SETUP THE QUALITY METRICS
     if cfg.dataset.name == "2D":
 
-        ROIs =  ["ROI_Heart"] #["ROI_LungLesion"] #
+        ROIs = ["ROI_LungLesion"]
         ROIs_masks = []
         ROIs_b_mask = np.load(
             cfg.dataset.quality_path + "/" + "ROI_Lung" + ".npy"
@@ -100,8 +102,8 @@ def baselines(cfg : DictConfig) -> None:
                 cfg.dataset.quality_path + "/" + ROIs[i] + ".npy")
                 )
         
-        # Heart , LungLeison 3254.626, Lung 1254.6259
-        emissions = [2897.9812, 1254.6259]
+        # LungLesion 3254.626, Lung 1254.6259
+        emissions = [3254.626, 1254.6259]
         
     elif cfg.dataset.name == "3D":
 
