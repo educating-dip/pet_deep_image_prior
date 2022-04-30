@@ -1,6 +1,6 @@
 hydra:
   run:
-    dir: ./test_baselines/${dataset.name}/${dataset.count}/${prior.name}
+    dir: ./test_baselines/${prior.name}
     # ./test_baselines/${dataset.name}/${dataset.count}/${prior.name}
   sweep:
     dir: ./baselines/${prior.name}

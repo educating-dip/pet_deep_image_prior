@@ -133,6 +133,7 @@ dmypy.json
 experiments/baselines/
 experiments/baselines_50_epochs/
 experiments/main/
+experiments/main_1e-3/
 experiments/test_baselines/
 experiments/test_main/
 notebook_WIP/

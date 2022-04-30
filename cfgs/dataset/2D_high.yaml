@@ -8,4 +8,4 @@ initial: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2
 kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_kappa.hv
 image_xy: 251
 num_subsets: 4
-num_epochs: 100
+num_epochs: 200

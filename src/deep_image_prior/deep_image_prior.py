@@ -27,8 +27,8 @@ class DeepImagePriorReconstructor():
         self.model = UNet(
             1,
             1,
-            channels=self.cfgs.net.arch.channels[:self.cfgs.net.arch.scales],
-            skip_channels=self.cfgs.net.arch.skip_channels[:self.cfgs.net.arch.scales],
+            channels=[128]*self.cfgs.net.arch.scales,
+            skip_channels=[0]*self.cfgs.net.arch.scales,
             use_norm=self.cfgs.net.arch.use_norm
             ).to(self.device)
 
@@ -83,11 +83,8 @@ class DeepImagePriorReconstructor():
                     output
                     )
                 )
-
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
-                if loss.item() < best_loss:
-                    best_params_state_dict = deepcopy(self.model.state_dict())
                 self.optimizer.step()
 
                 for p in self.model.parameters():
@@ -109,7 +106,6 @@ class DeepImagePriorReconstructor():
                         self.writer.add_scalar('crc', crc, i)
                         self.writer.add_scalar('stdev', stdev, i)
 
-        self.model.load_state_dict(best_params_state_dict)
         self.writer.close()
         
         crc, stdev = image_metrics.get_all_metrics(
