@@ -3,7 +3,7 @@ import torch
 # based on 
 # https://github.com/educating-dip/educated_deep_image_prior/blob/103c52dfb53e98e381ae5c7cd775795be63abb21/src/dataset/walnuts.py#L532
 
-class _objectiveFunctionalModule(torch.autograd.Function):
+class _objectiveFunctionModule(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, image_template, sirf_obj):
         ctx.sirf_obj = sirf_obj
@@ -43,7 +43,7 @@ class ObjectiveFunctionalModule(torch.nn.Module):
 
         obj_fun_value_batch = torch.zeros(1, device=out.device)
         for out_i in out:
-            obj_fun_value = _objectiveFunctionalModule.apply(
+            obj_fun_value = _objectiveFunctionModule.apply(
                 out_i, self.image_template, self.obj_fun
                 )
             obj_fun_value_batch = obj_fun_value_batch + obj_fun_value
