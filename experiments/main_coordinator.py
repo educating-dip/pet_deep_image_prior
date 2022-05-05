@@ -13,7 +13,7 @@ sys.path.append(
     )
 
 from src import (ComputeImageMetrics, DeepImagePriorReconstructor,
-    ObjectiveFunctionalModule 
+    ObjectiveFunctionModule 
     )
 
 pet.set_verbosity(0)

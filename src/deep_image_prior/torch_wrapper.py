@@ -33,7 +33,7 @@ class _objectiveFunctionModule(torch.autograd.Function):
 
         return grads, None, None, None
 
-class ObjectiveFunctionalModule(torch.nn.Module):
+class ObjectiveFunctionModule(torch.nn.Module):
     def __init__(self, image_template, obj_fun):
         super().__init__()
         self.image_template = image_template.clone()

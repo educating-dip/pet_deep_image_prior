@@ -33,10 +33,9 @@ class DeepImagePriorReconstructor():
             ).to(self.device)
 
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
-        comment = 'DIP+TV'
         logdir = os.path.join(
             self.cfgs.net.log_path,
-            current_time + '_' + socket.gethostname() + comment
+            current_time + '_' + socket.gethostname()
             )
         self.writer = tensorboardX.SummaryWriter(logdir=logdir)
 
