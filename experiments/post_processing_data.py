@@ -51,5 +51,9 @@ if os.path.isfile(os.getcwd() + "/main_data.npy") == False:
         data_exp['profile'] = profile
         conf = OmegaConf.load(os.path.dirname(os.path.dirname(main_path_acc[i]))+'/.hydra/config.yaml')['net']['arch']
         data_exp['scales'] = conf['scales']
+        conf = OmegaConf.load(os.path.dirname(os.path.dirname(main_path_acc[i]))+'/.hydra/config.yaml')['net']['optim']
+        if data_exp['prior'] != 'OSEM' and conf['iterations'] == 30000:
+            if data_exp['scales']==6:
+                continue
         data.append(data_exp)
     np.save('main_data',data)
