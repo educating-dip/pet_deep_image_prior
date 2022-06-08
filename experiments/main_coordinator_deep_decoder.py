@@ -12,13 +12,13 @@ sys.path.append(
         )
     )
 
-from src import (ComputeImageMetrics, DeepImagePriorReconstructor,
+from src import (ComputeImageMetrics, DeepDecoderPriorReconstructor,
     ObjectiveFunctionModule 
     )
 
 pet.set_verbosity(0)
 
-@hydra.main(config_path='../cfgs', config_name='config')
+@hydra.main(config_path='../cfgs', config_name='config_deep_decoder')
 def baselines(cfg : DictConfig) -> None:
     
     # GET THE DATA
@@ -123,7 +123,7 @@ def baselines(cfg : DictConfig) -> None:
     )
     
 
-    reconstructor = DeepImagePriorReconstructor(
+    reconstructor = DeepDecoderPriorReconstructor(
             obj_fun_module = ObjectiveFunctionModule(
                 image_template=image.clone(), 
                 obj_fun = objective_functional

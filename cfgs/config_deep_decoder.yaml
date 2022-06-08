@@ -1,0 +1,21 @@
+hydra:
+  run:
+    dir: ./deepdecoderSINGLE/${prior.name}
+    # ./test_baselines/${dataset.name}/${dataset.count}/${prior.name}
+  sweep:
+    dir: ./deepdecoder/${net.arch.channels}
+    # ./baselines/${dataset.name}/${dataset.count}/${prior.name}
+    subdir: ${hydra.job.override_dirname}
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - dataset
+          - prior
+
+defaults:
+  - dataset: 2D_high
+  - prior: OSEM
+  - net: deepdecoder
+seed: 1
+num_images: 1

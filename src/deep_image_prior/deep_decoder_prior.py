@@ -6,11 +6,11 @@ import numpy as np
 import tensorboardX
 from hydra.utils import get_original_cwd
 from tqdm import tqdm
-from .network import UNet
+from .network import DeepDecoder
 from .utils import normalize
 from copy import deepcopy
 
-class DeepImagePriorReconstructor():
+class DeepDecoderPriorReconstructor():
 
     def __init__(self, obj_fun_module, image_template, cfgs):
 
@@ -24,14 +24,7 @@ class DeepImagePriorReconstructor():
 
     def init_model(self):
 
-        self.model = UNet(
-            1,
-            1,
-            channels=[128]*self.cfgs.net.arch.scales,
-            skip_channels=[0]*self.cfgs.net.arch.scales,
-            use_norm=self.cfgs.net.arch.use_norm
-            ).to(self.device)
-
+        self.model = DeepDecoder(num_channels_up = [self.cfgs.net.arch.channels]*5).to(self.device)
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
         logdir = os.path.join(
             self.cfgs.net.log_path,
@@ -46,6 +39,7 @@ class DeepImagePriorReconstructor():
 
         if init_model: 
             self.init_model()
+            
         if self.cfgs.net.load_pretrain_model:
             path = os.path.join(
                 get_original_cwd(),
@@ -60,14 +54,17 @@ class DeepImagePriorReconstructor():
             self.model.to(self.device)
 
         self.model.train()
-        self.net_input = 0.1 * \
-            torch.randn(
-                1, *self.image_template.shape
-            ).to(self.device)
+        input_shape = [1, self.cfgs.net.arch.channels, 4, 4]
+
+        self.net_input = torch.rand(input_shape, 
+            generator = torch.Generator().manual_seed(0),
+            requires_grad=True).to(self.device)
 
         self.init_optimizer()
+        self.init_scheduler()
 
         best_loss = np.inf
+
         best_output = self.model(
             self.net_input
             ).detach()
@@ -85,25 +82,24 @@ class DeepImagePriorReconstructor():
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.optimizer.step()
-
-                for p in self.model.parameters():
-                    p.data.clamp_(-1000, 1000) # MIN,MAX
+                self.scheduler.step()
             
                 if loss.item() < best_loss:
                     best_loss = loss.item()
                     best_output = output.detach()
 
                 self.writer.add_scalar('loss', loss.item(),  i)
-                if i % 100 == 0:
+                if i % 25 == 0:
                     self.writer.add_image('reco', normalize(
                         output[0, ...].detach().cpu().numpy() 
                         ), i)
-                    if i  > 2500:
+                    if i  > 500:
                         crc, stdev = image_metrics.get_all_metrics(
                             output[0, ...].detach().cpu().numpy()
                             )
                         self.writer.add_scalar('crc', crc, i)
                         self.writer.add_scalar('stdev', stdev, i)
+                        self.writer.add_scalar('lr', self.scheduler.get_lr(), i)
 
         self.writer.close()
         
@@ -125,6 +121,13 @@ class DeepImagePriorReconstructor():
 
         self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.net.optim.lr)
 
+    def init_scheduler(self):
+        """
+        Initialize the scheduler.
+        """
+        self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, self.cfgs.net.optim.iterations, eta_min=0, last_epoch=- 1, verbose=False)
+        
+
     @property
     def optimizer(self):
         """
@@ -133,6 +136,14 @@ class DeepImagePriorReconstructor():
         in :meth:`train`.
         """
         return self._optimizer
+    @property
+    def scheduler(self):
+        """
+        :class:`torch.optim.Scheduler` :
+        The scheduler, usually set by :meth:`init_scheduler`, which gets called
+        in :meth:`train`.
+        """
+        return self._scheduler
 
     @optimizer.setter
     def optimizer(self, value):

@@ -136,6 +136,8 @@ experiments/main/
 experiments/main_1e-3/
 experiments/test_baselines/
 experiments/test_main/
+experiments/deepdecoder/
+experiments/deepdecoderSINGLE/
 notebook_WIP/
 
 #.pdf file
@@ -147,3 +149,4 @@ events.out.tf*
 *.npy
 *.sh
 *.ipynb
+*.eps

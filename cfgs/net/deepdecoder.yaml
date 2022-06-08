@@ -1,0 +1,10 @@
+arch:
+  channels: 100
+optim:
+  lr: 1e-3
+  iterations: 60000
+show_pbar: True
+torch_manual_seed: 10
+log_path: ./
+load_pretrain_model: False
+recon_from_randn: True
