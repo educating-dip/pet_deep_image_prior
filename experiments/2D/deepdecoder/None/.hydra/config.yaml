@@ -1,0 +1,40 @@
+dataset:
+  name: 2D
+  count: high
+  modality: PET
+  quality_path: /home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/2D
+  prompts: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_Prompts2d.hs
+  additive: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_total_additive_52d.hs
+  multiplicative: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_multfactors2d.hs
+  initial:
+    use: false
+    path: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
+  kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_kappa.hv
+  image_xy: 251
+  ROIs_a:
+    names:
+    - ROI_LungLesion
+    emissions:
+    - 3254.626
+  ROIs_b:
+    names:
+    - ROI_Lung
+    emissions:
+    - 1254.6259
+prior:
+  name: None
+  initial: false
+model:
+  name: deepdecoder
+  arch:
+    channels: 100
+  optim:
+    lr: 0.001
+    iterations: 60000
+  show_pbar: true
+  torch_manual_seed: 10
+  log_path: ./
+  load_pretrain_model: false
+  recon_from_randn: true
+seed: 1
+num_images: 1

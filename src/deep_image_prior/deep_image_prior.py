@@ -27,30 +27,30 @@ class DeepImagePriorReconstructor():
         self.model = UNet(
             1,
             1,
-            channels=[128]*self.cfgs.net.arch.scales,
-            skip_channels=[0]*self.cfgs.net.arch.scales,
-            use_norm=self.cfgs.net.arch.use_norm
+            channels=[128]*self.cfgs.model.arch.scales,
+            skip_channels=[0]*self.cfgs.model.arch.scales,
+            use_norm=self.cfgs.model.arch.use_norm
             ).to(self.device)
 
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
         logdir = os.path.join(
-            self.cfgs.net.log_path,
+            self.cfgs.model.log_path,
             current_time + '_' + socket.gethostname()
             )
         self.writer = tensorboardX.SummaryWriter(logdir=logdir)
 
     def reconstruct(self, image_metrics, init_model=True):
 
-        if self.cfgs.net.torch_manual_seed:
-            torch.random.manual_seed(self.cfgs.net.torch_manual_seed)
+        if self.cfgs.model.torch_manual_seed:
+            torch.random.manual_seed(self.cfgs.model.torch_manual_seed)
 
         if init_model: 
             self.init_model()
-        if self.cfgs.net.load_pretrain_model:
+        if self.cfgs.model.load_pretrain_model:
             path = os.path.join(
                 get_original_cwd(),
-                self.cfgs.net.learned_params_path if self.cfgs.net.learned_params_path.endswith('.pt') \
-                    else self.cfgs.net.learned_params_path + '.pt')
+                self.cfgs.model.learned_params_path if self.cfgs.model.learned_params_path.endswith('.pt') \
+                    else self.cfgs.model.learned_params_path + '.pt')
             self.model.load_state_dict(
                 torch.load(
                     path, map_location=self.device
@@ -72,7 +72,7 @@ class DeepImagePriorReconstructor():
             self.net_input
             ).detach()
 
-        with tqdm(range(self.cfgs.net.optim.iterations), desc='PET-DIP', disable=not self.cfgs.net.show_pbar) as pbar:
+        with tqdm(range(self.cfgs.model.optim.iterations), desc='PET-DIP', disable=not self.cfgs.model.show_pbar) as pbar:
             for i in pbar:
 
                 self.optimizer.zero_grad()
@@ -123,7 +123,7 @@ class DeepImagePriorReconstructor():
         Initialize the optimizer.
         """
 
-        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.net.optim.lr)
+        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.model.optim.lr)
 
     @property
     def optimizer(self):

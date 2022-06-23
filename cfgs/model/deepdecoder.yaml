@@ -1,3 +1,4 @@
+name: deepdecoder
 arch:
   channels: 100
 optim:

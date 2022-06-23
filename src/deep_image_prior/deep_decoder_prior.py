@@ -24,27 +24,27 @@ class DeepDecoderPriorReconstructor():
 
     def init_model(self):
 
-        self.model = DeepDecoder(num_channels_up = [self.cfgs.net.arch.channels]*5).to(self.device)
+        self.model = DeepDecoder(num_channels_up = [self.cfgs.model.arch.channels]*5).to(self.device)
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
         logdir = os.path.join(
-            self.cfgs.net.log_path,
+            self.cfgs.model.log_path,
             current_time + '_' + socket.gethostname()
             )
         self.writer = tensorboardX.SummaryWriter(logdir=logdir)
 
     def reconstruct(self, image_metrics, init_model=True):
 
-        if self.cfgs.net.torch_manual_seed:
-            torch.random.manual_seed(self.cfgs.net.torch_manual_seed)
+        if self.cfgs.model.torch_manual_seed:
+            torch.random.manual_seed(self.cfgs.model.torch_manual_seed)
 
         if init_model: 
             self.init_model()
             
-        if self.cfgs.net.load_pretrain_model:
+        if self.cfgs.model.load_pretrain_model:
             path = os.path.join(
                 get_original_cwd(),
-                self.cfgs.net.learned_params_path if self.cfgs.net.learned_params_path.endswith('.pt') \
-                    else self.cfgs.net.learned_params_path + '.pt')
+                self.cfgs.model.learned_params_path if self.cfgs.model.learned_params_path.endswith('.pt') \
+                    else self.cfgs.model.learned_params_path + '.pt')
             self.model.load_state_dict(
                 torch.load(
                     path, map_location=self.device
@@ -54,7 +54,7 @@ class DeepDecoderPriorReconstructor():
             self.model.to(self.device)
 
         self.model.train()
-        input_shape = [1, self.cfgs.net.arch.channels, 4, 4]
+        input_shape = [1, self.cfgs.model.arch.channels, 4, 4]
 
         self.net_input = torch.rand(input_shape, 
             generator = torch.Generator().manual_seed(0),
@@ -69,7 +69,7 @@ class DeepDecoderPriorReconstructor():
             self.net_input
             ).detach()
 
-        with tqdm(range(self.cfgs.net.optim.iterations), desc='PET-DIP', disable=not self.cfgs.net.show_pbar) as pbar:
+        with tqdm(range(self.cfgs.model.optim.iterations), desc='PET-DIP', disable=not self.cfgs.model.show_pbar) as pbar:
             for i in pbar:
 
                 self.optimizer.zero_grad()
@@ -119,13 +119,13 @@ class DeepDecoderPriorReconstructor():
         Initialize the optimizer.
         """
 
-        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.net.optim.lr)
+        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.model.optim.lr)
 
     def init_scheduler(self):
         """
         Initialize the scheduler.
         """
-        self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, self.cfgs.net.optim.iterations, eta_min=0, last_epoch=- 1, verbose=False)
+        self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, self.cfgs.model.optim.iterations, eta_min=0, last_epoch=- 1, verbose=False)
         
 
     @property

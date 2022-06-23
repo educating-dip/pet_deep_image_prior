@@ -1,11 +1,18 @@
-name: "2D"
-count: "high"
-quality_path: "/home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/2D"
+name: 2D
+count: high
+modality: PET
+quality_path: /home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/2D
 prompts: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_Prompts2d.hs
 additive: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_total_additive_52d.hs
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_multfactors2d.hs
-initial: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
+initial:
+  use: False
+  path: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
 kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_kappa.hv
 image_xy: 251
-num_subsets: 4
-num_epochs: 200
+ROIs_a:
+  names: [ROI_LungLesion]
+  emissions: [3254.626]
+ROIs_b:
+  names: [ROI_Lung]
+  emissions: [1254.6259]
