@@ -47,10 +47,8 @@ def QuadraticPrior(initial,
         objective_function.set_prior(prior)
         objective_function.set_up(initial)
 
-def RelativeDifferencePrior(
+def RelativeDifferencePrior(initial,
                 objective_function,
-                initial_use,
-                initial_path,
                 kappa_use,
                 kappa_path,
                 penalty_factor,
@@ -60,8 +58,6 @@ def RelativeDifferencePrior(
         print('using Relative Difference prior...')
         prior.set_penalisation_factor(penalty_factor)
         prior.set_gamma(gamma)
-        if initial_use:
-            initial = pet.ImageData(initial_path)
         if kappa_use:
             kappa = pet.ImageData(kappa_path)
             prior.set_kappa(initial.clone().fill(kappa))
