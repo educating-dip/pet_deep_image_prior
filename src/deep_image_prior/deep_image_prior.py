@@ -8,75 +8,44 @@ from hydra.utils import get_original_cwd
 from tqdm import tqdm
 from .network import UNet
 from .utils import normalize
-from copy import deepcopy
 
 class DeepImagePriorReconstructor():
 
-    def __init__(self, obj_fun_module, image_template, cfgs):
+    def __init__(self, 
+                    model,
+                    input,
+                    obj_fun_module,
+                    iterations,
+                    lr):
 
-        self.cfgs = cfgs
-        self.image_template = image_template
-        self.device = torch.device(
-            ('cuda:0' if torch.cuda.is_available() else 'cpu')
-            )
+        self.device = torch.device(('cuda:0' if torch.cuda.is_available() else 'cpu'))
+        self.model = model.to(self.device)
+        self.input = input.to(self.device)
         self.obj_fun_module = obj_fun_module.to(self.device)
-        self.init_model()
-
-    def init_model(self):
-
-        self.model = UNet(
-            1,
-            1,
-            channels=[128]*self.cfgs.model.arch.scales,
-            skip_channels=[0]*self.cfgs.model.arch.scales,
-            use_norm=self.cfgs.model.arch.use_norm
-            ).to(self.device)
-
+        self.iterations = iterations
+        self.lr = lr
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
-        logdir = os.path.join(
-            self.cfgs.model.log_path,
-            current_time + '_' + socket.gethostname()
-            )
+        logdir = os.path.join(current_time + '_' + socket.gethostname())
         self.writer = tensorboardX.SummaryWriter(logdir=logdir)
 
-    def reconstruct(self, image_metrics, init_model=True):
 
-        if self.cfgs.model.torch_manual_seed:
-            torch.random.manual_seed(self.cfgs.model.torch_manual_seed)
-
-        if init_model: 
-            self.init_model()
-        if self.cfgs.model.load_pretrain_model:
-            path = os.path.join(
-                get_original_cwd(),
-                self.cfgs.model.learned_params_path if self.cfgs.model.learned_params_path.endswith('.pt') \
-                    else self.cfgs.model.learned_params_path + '.pt')
-            self.model.load_state_dict(
-                torch.load(
-                    path, map_location=self.device
-                    )
-                )
-        else:
-            self.model.to(self.device)
-
-        self.model.train()
-        self.net_input = 0.1 * \
-            torch.randn(
-                1, *self.image_template.shape
-            ).to(self.device)
+    def reconstruct(self, image_metrics, use_scheduler = False):
 
         self.init_optimizer()
 
+        if use_scheduler:
+            self.init_scheduler()
+
         best_loss = np.inf
         best_output = self.model(
-            self.net_input
+            self.input
             ).detach()
 
-        with tqdm(range(self.cfgs.model.optim.iterations), desc='PET-DIP', disable=not self.cfgs.model.show_pbar) as pbar:
+        with tqdm(range(self.iterations), desc='PET-DIP') as pbar:
             for i in pbar:
 
                 self.optimizer.zero_grad()
-                output = self.model(self.net_input)
+                output = self.model(self.input)
 
                 loss = - torch.log(self.obj_fun_module(
                     output
@@ -115,7 +84,6 @@ class DeepImagePriorReconstructor():
         np.save('profile', best_output[0,0, row_lesion, :].detach().cpu().numpy())
         np.save('crc',crc)
         np.save('std_dev',stdev)
-
         return best_output[0, 0, ...].cpu().numpy()
 
     def init_optimizer(self):
@@ -123,7 +91,17 @@ class DeepImagePriorReconstructor():
         Initialize the optimizer.
         """
 
-        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.model.optim.lr)
+        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+
+    def init_scheduler(self):
+        """
+        Initialize the scheduler.
+        """
+        self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, 
+                                                                    self.iterations, 
+                                                                    eta_min=0, 
+                                                                    last_epoch=-1, 
+                                                                    verbose=False)
 
     @property
     def optimizer(self):

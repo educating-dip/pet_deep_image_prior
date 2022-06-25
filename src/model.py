@@ -3,8 +3,15 @@ import os
 import tensorboardX
 import datetime
 import socket
+import torch
 
-from .deep_image_prior import normalize, ObjectiveFunctionModule, DeepImagePriorReconstructor, DeepDecoderPriorReconstructor
+from .deep_image_prior import normalize, \
+                            ObjectiveFunctionModule, \
+                            DeepImagePriorReconstructor, \
+                            DeepDecoderPriorReconstructor
+from .deep_image_prior.network import *
+
+
 
 class ModelClass(object):
     def __init__(self, cfg, dataset):
@@ -18,33 +25,15 @@ class ModelClass(object):
                     dataset.quality_metrics
                     )
         elif cfg.model.name == 'unet':
-            reconstructor = DeepImagePriorReconstructor(
-            obj_fun_module = ObjectiveFunctionModule(
-                image_template=dataset.initial.get_uniform_copy(1), 
-                obj_fun = dataset.objective_function
-                ), 
-                image_template=dataset.initial,
-                cfgs=cfg
-                )
-            reconstructor.reconstruct(
+            model = unetprior(cfg,dataset)
+            model.reconstruct(
                 dataset.quality_metrics
             )
         elif cfg.model.name == 'deepdecoder':
-            reconstructor = DeepDecoderPriorReconstructor(
-            obj_fun_module = ObjectiveFunctionModule(
-                image_template=dataset.initial.get_uniform_copy(1), 
-                obj_fun = dataset.objective_function
-                ), 
-                image_template=dataset.initial,
-                cfgs=cfg
-                )
-            reconstructor.reconstruct(
+            model = deepdecoderprior(cfg,dataset)
+            model.reconstruct(
                 dataset.quality_metrics
             )
-            
-            raise NotImplementedError
-        elif cfg.model.name == 'deepdecoder':
-            raise NotImplementedError
         else:
             raise NotImplementedError
 
@@ -71,8 +60,6 @@ def baseline(num_subsets, num_epochs, objective_function, initial, quality_metri
     logdir = os.path.join('./', current_time + '_' + socket.gethostname())
     writer = tensorboardX.SummaryWriter(logdir=logdir)
 
-
-    # TO DO GET THE QUALITY METRICS
     current_image = initial
     for i in range(0, num_subsets*num_epochs + 1):
 
@@ -91,11 +78,85 @@ def baseline(num_subsets, num_epochs, objective_function, initial, quality_metri
 
         writer.add_scalar('CRC', crc, i)
         writer.add_scalar('STDEV', std, i)
-
-    """ if cfg.dataset.name == '2D': 
-        row_lesion = 139
-        np.save('profile', current_image.as_array()[0, row_lesion, :])
-
-    np.save('recon', current_image.as_array()) """
     writer.close()
 
+def unetprior(cfg, dataset):
+
+    if cfg.model.torch_manual_seed:
+            torch.random.manual_seed(cfg.model.torch_manual_seed)
+
+    # Model
+    model = UNet(
+            1,
+            1,
+            channels=[128]*cfg.model.arch.scales,
+            skip_channels=[0]*cfg.model.arch.scales,
+            use_norm= cfg.model.arch.use_norm
+            )
+    
+    # Input
+    if cfg.model.random_input:
+        input = 0.1 * \
+            torch.randn(
+                1, * dataset.initial.shape
+            )
+    else:
+        NotImplemented
+
+    # Pre-trained
+    if cfg.model.load_pretrain_model:
+        path = cfg.model.learned_params_path
+        model.load_state_dict(torch.load(path))
+
+    obj_fun_module = ObjectiveFunctionModule(
+                image_template=dataset.initial.get_uniform_copy(1), 
+                obj_fun = dataset.objective_function
+                )
+
+    iterations = cfg.model.optim.iterations
+    lr = cfg.model.optim.lr
+    reconstructor = DeepImagePriorReconstructor(
+                    model,
+                    input,
+                    obj_fun_module,
+                    iterations,
+                    lr)
+    reconstructor.reconstruct(
+        dataset.quality_metrics)
+
+def deepdecoderprior(cfg, dataset):
+
+    if cfg.model.torch_manual_seed:
+            torch.random.manual_seed(cfg.model.torch_manual_seed)
+
+    # Model
+    model = DeepDecoder(num_channels_up = [cfg.model.arch.channels]*5)
+    
+    # Input
+    if cfg.model.random_input:
+        input_shape = [1, cfg.model.arch.channels, 4, 4]
+
+        input = torch.rand(input_shape, requires_grad=True)
+    else:
+        NotImplemented
+
+    # Pre-trained
+    if cfg.model.load_pretrain_model:
+        path = cfg.model.learned_params_path
+        model.load_state_dict(torch.load(path))
+
+    obj_fun_module = ObjectiveFunctionModule(
+                                image_template=dataset.initial.get_uniform_copy(1), 
+                                obj_fun = dataset.objective_function)
+
+    iterations = cfg.model.optim.iterations
+
+    lr = cfg.model.optim.lr
+
+    reconstructor = DeepImagePriorReconstructor(model,
+                                                input,
+                                                obj_fun_module,
+                                                iterations,
+                                                lr)
+    reconstructor.reconstruct(dataset.quality_metrics,
+                            cfg.model.use_scheduler)

@@ -4,8 +4,8 @@ arch:
 optim:
   lr: 1e-3
   iterations: 60000
-show_pbar: True
-torch_manual_seed: 10
-log_path: ./
+torch_manual_seed: 1669
+random_input: True
 load_pretrain_model: False
 recon_from_randn: True
+use_scheduler: True
