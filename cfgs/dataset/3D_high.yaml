@@ -1,5 +1,4 @@
-name: "3D"
-count: "high"
+name: "3D_high"
 quality_path: "/home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D"
 prompts: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/my_Prompts2d.hs
 additive: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/my_total_additive_52d.hs
@@ -7,6 +6,5 @@ multiplicative: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/my_mu
 initial: /home/user/sirf_stir_priors/pet_deep_image_prior/notebook_WIP/convert_to_2D/OSEM_2D_24.hv
 kappa: /home/user/sirf_stir_priors/pet_deep_image_prior/notebook_WIP/convert_to_2D/my_kappa.hv
 image_xy: 251
-num_LORs: 10
 num_subsets: 4
 num_epochs: 100

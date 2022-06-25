@@ -16,7 +16,8 @@ class DeepImagePriorReconstructor():
                     input,
                     obj_fun_module,
                     iterations,
-                    lr):
+                    lr,
+                    writer):
 
         self.device = torch.device(('cuda:0' if torch.cuda.is_available() else 'cpu'))
         self.model = model.to(self.device)
@@ -24,9 +25,7 @@ class DeepImagePriorReconstructor():
         self.obj_fun_module = obj_fun_module.to(self.device)
         self.iterations = iterations
         self.lr = lr
-        current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
-        logdir = os.path.join(current_time + '_' + socket.gethostname())
-        self.writer = tensorboardX.SummaryWriter(logdir=logdir)
+        self.writer = writer
 
 
     def reconstruct(self, image_metrics, use_scheduler = False):

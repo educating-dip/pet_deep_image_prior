@@ -5,44 +5,57 @@ import datetime
 import socket
 import torch
 
-from .deep_image_prior import normalize, \
-                            ObjectiveFunctionModule, \
-                            DeepImagePriorReconstructor, \
-                            DeepDecoderPriorReconstructor
+from .deep_image_prior import   normalize, \
+                                ObjectiveFunctionModule, \
+                                DeepImagePriorReconstructor
+
 from .deep_image_prior.network import *
 
 
 
 class ModelClass(object):
-    def __init__(self, cfg, dataset):
+    def __init__(
+            self, 
+            cfg, 
+            dataset):
+
+        current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
+        logdir = os.path.join('./', current_time + '_' + socket.gethostname())
+        writer = tensorboardX.SummaryWriter(logdir=logdir)
         
         if cfg.model.name == 'baseline':
-            model = baseline(
-                    cfg.model.num_subsets,
-                    cfg.model.num_epochs,
-                    dataset.objective_function,
-                    dataset.initial,
-                    dataset.quality_metrics
-                    )
+            baseline(
+                cfg.model.num_subsets,
+                cfg.model.num_epochs,
+                dataset.objective_function,
+                dataset.initial,
+                dataset.quality_metrics,
+                writer)
+
         elif cfg.model.name == 'unet':
-            model = unetprior(cfg,dataset)
-            model.reconstruct(
-                dataset.quality_metrics
-            )
+            unetprior(
+                cfg,
+                dataset,
+                writer)
+
         elif cfg.model.name == 'deepdecoder':
-            model = deepdecoderprior(cfg,dataset)
-            model.reconstruct(
-                dataset.quality_metrics
-            )
+            deepdecoderprior(
+                cfg,
+                dataset,
+                writer)
+
         else:
             raise NotImplementedError
 
 
+def baseline(
+        num_subsets, 
+        num_epochs, 
+        objective_function, 
+        initial, 
+        quality_metrics,
+        writer):
 
-
-
-
-def baseline(num_subsets, num_epochs, objective_function, initial, quality_metrics):
     image = initial.get_uniform_copy(1)
 
     # CREATE RECONSTRUCTION OBJECT
@@ -56,50 +69,43 @@ def baseline(num_subsets, num_epochs, objective_function, initial, quality_metri
     sirf_reconstruction.set_up(image)
     sirf_reconstruction.set_current_estimate(initial)
 
-    current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
-    logdir = os.path.join('./', current_time + '_' + socket.gethostname())
-    writer = tensorboardX.SummaryWriter(logdir=logdir)
-
     current_image = initial
     for i in range(0, num_subsets*num_epochs + 1):
 
-        writer.add_image('recon', 
-            normalize(
-                current_image.as_array()
-            ), i)
+        writer.add_image('recon', \
+            normalize(current_image.as_array()), i)
 
-        sirf_reconstruction.update(
-            current_image
-            )
+        sirf_reconstruction.update(current_image)
 
-        (crc, std) = quality_metrics.get_all_metrics(
-            current_image.as_array()
-            )
+        (crc, std) = \
+            quality_metrics.get_all_metrics(current_image.as_array())
 
         writer.add_scalar('CRC', crc, i)
         writer.add_scalar('STDEV', std, i)
     writer.close()
 
-def unetprior(cfg, dataset):
+
+
+def unetprior(
+        cfg, 
+        dataset, 
+        writer):
 
     if cfg.model.torch_manual_seed:
             torch.random.manual_seed(cfg.model.torch_manual_seed)
 
     # Model
     model = UNet(
-            1,
-            1,
-            channels=[128]*cfg.model.arch.scales,
-            skip_channels=[0]*cfg.model.arch.scales,
-            use_norm= cfg.model.arch.use_norm
-            )
+                1,
+                1,
+                channels=[128]*cfg.model.arch.scales,
+                skip_channels=[0]*cfg.model.arch.scales,
+                use_norm= cfg.model.arch.use_norm
+                )
     
     # Input
     if cfg.model.random_input:
-        input = 0.1 * \
-            torch.randn(
-                1, * dataset.initial.shape
-            )
+        input = 0.1 * torch.randn(1, * dataset.initial.shape)
     else:
         NotImplemented
 
@@ -108,23 +114,28 @@ def unetprior(cfg, dataset):
         path = cfg.model.learned_params_path
         model.load_state_dict(torch.load(path))
 
-    obj_fun_module = ObjectiveFunctionModule(
-                image_template=dataset.initial.get_uniform_copy(1), 
-                obj_fun = dataset.objective_function
-                )
+    obj_fun_module =    ObjectiveFunctionModule(
+                            image_template=dataset.initial.get_uniform_copy(1), 
+                            obj_fun = dataset.objective_function
+                            )
 
     iterations = cfg.model.optim.iterations
     lr = cfg.model.optim.lr
     reconstructor = DeepImagePriorReconstructor(
-                    model,
-                    input,
-                    obj_fun_module,
-                    iterations,
-                    lr)
-    reconstructor.reconstruct(
-        dataset.quality_metrics)
+                        model,
+                        input,
+                        obj_fun_module,
+                        iterations,
+                        lr,
+                        writer)
 
-def deepdecoderprior(cfg, dataset):
+    reconstructor.reconstruct(dataset.quality_metrics)
+
+
+def deepdecoderprior(
+        cfg, 
+        dataset, 
+        writer):
 
     if cfg.model.torch_manual_seed:
             torch.random.manual_seed(cfg.model.torch_manual_seed)
@@ -145,18 +156,22 @@ def deepdecoderprior(cfg, dataset):
         path = cfg.model.learned_params_path
         model.load_state_dict(torch.load(path))
 
-    obj_fun_module = ObjectiveFunctionModule(
-                                image_template=dataset.initial.get_uniform_copy(1), 
-                                obj_fun = dataset.objective_function)
+    obj_fun_module =    ObjectiveFunctionModule(
+                            image_template=dataset.initial.get_uniform_copy(1), 
+                            obj_fun = dataset.objective_function)
 
     iterations = cfg.model.optim.iterations
 
     lr = cfg.model.optim.lr
 
-    reconstructor = DeepImagePriorReconstructor(model,
-                                                input,
-                                                obj_fun_module,
-                                                iterations,
-                                                lr)
-    reconstructor.reconstruct(dataset.quality_metrics,
-                            cfg.model.use_scheduler)
+    reconstructor = DeepImagePriorReconstructor(
+                        model,
+                        input,
+                        obj_fun_module,
+                        iterations,
+                        lr,
+                        writer)
+
+    reconstructor.reconstruct(
+        dataset.quality_metrics,
+        cfg.model.use_scheduler)

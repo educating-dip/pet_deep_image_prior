@@ -5,21 +5,25 @@ import torch
 
 class _objectiveFunctionModule(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, x, image_template, sirf_obj):
+    def forward(
+            ctx, 
+            x, 
+            image_template, 
+            sirf_obj):
+
         ctx.sirf_obj = sirf_obj
         ctx.x = x
         ctx.image_template = image_template
-
         x_np = x.detach().cpu().numpy()
         x_np = ctx.image_template.fill(x_np)
         value_np = ctx.sirf_obj.get_value(x_np)
-        value = torch.tensor(
-            value_np).to(x.device)
-
-        return value
+        
+        return torch.tensor(value_np).to(x.device)
 
     @staticmethod
-    def backward(ctx, in_grad):
+    def backward(
+            ctx, 
+            in_grad):
 
         grads_np = ctx.sirf_obj.get_gradient(
             ctx.image_template.fill(
