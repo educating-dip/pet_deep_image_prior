@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
@@ -130,13 +131,8 @@ dmypy.json
 
 # folder
 
-experiments/baselines/
-experiments/baselines_50_epochs/
-experiments/main/
-experiments/main_1e-3/
-experiments/test_baselines/
-experiments/test_main/
-notebook_WIP/
+experiments/2D
+experiments/3D_high
 
 #.pdf file
 *.pdf

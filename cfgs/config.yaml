@@ -1,10 +1,8 @@
 hydra:
   run:
-    dir: ./test_main/${prior.name}
-    # ./test_baselines/${dataset.name}/${dataset.count}/${prior.name}
+    dir: ./${dataset.name}/${model.name}/${prior.name}
   sweep:
-    dir: ./main/${prior.name}
-    # ./baselines/${dataset.name}/${dataset.count}/${prior.name}
+    dir: ./${dataset.name}/${model.name}/${prior.name}
     subdir: ${hydra.job.override_dirname}
   job:
     config:
@@ -15,7 +13,7 @@ hydra:
 
 defaults:
   - dataset: 2D_high
-  - prior: OSEM
-  - net: unet
+  - prior: None
+  - model: baseline
 seed: 1
 num_images: 1

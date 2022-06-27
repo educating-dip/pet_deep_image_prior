@@ -1,0 +1,3 @@
+name: baseline
+num_subsets: 4
+num_epochs: 200

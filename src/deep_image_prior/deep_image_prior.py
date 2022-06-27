@@ -1,82 +1,43 @@
-import os
-import socket
-import datetime
 import torch
 import numpy as np
-import tensorboardX
-from hydra.utils import get_original_cwd
 from tqdm import tqdm
-from .network import UNet
 from .utils import normalize
-from copy import deepcopy
 
-class DeepImagePriorReconstructor():
+class DeepImagePriorReconstructor:
+    def __init__(self, 
+                    model,
+                    input,
+                    obj_fun_module,
+                    iterations,
+                    lr,
+                    writer):
 
-    def __init__(self, obj_fun_module, image_template, cfgs):
-
-        self.cfgs = cfgs
-        self.image_template = image_template
-        self.device = torch.device(
-            ('cuda:0' if torch.cuda.is_available() else 'cpu')
-            )
+        self.device = torch.device(('cuda:0' if torch.cuda.is_available() else 'cpu'))
+        self.model = model.to(self.device)
+        self.input = input.to(self.device)
         self.obj_fun_module = obj_fun_module.to(self.device)
-        self.init_model()
+        self.iterations = iterations
+        self.lr = lr
+        self.writer = writer
 
-    def init_model(self):
 
-        self.model = UNet(
-            1,
-            1,
-            channels=[128]*self.cfgs.net.arch.scales,
-            skip_channels=[0]*self.cfgs.net.arch.scales,
-            use_norm=self.cfgs.net.arch.use_norm
-            ).to(self.device)
-
-        current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
-        logdir = os.path.join(
-            self.cfgs.net.log_path,
-            current_time + '_' + socket.gethostname()
-            )
-        self.writer = tensorboardX.SummaryWriter(logdir=logdir)
-
-    def reconstruct(self, image_metrics, init_model=True):
-
-        if self.cfgs.net.torch_manual_seed:
-            torch.random.manual_seed(self.cfgs.net.torch_manual_seed)
-
-        if init_model: 
-            self.init_model()
-        if self.cfgs.net.load_pretrain_model:
-            path = os.path.join(
-                get_original_cwd(),
-                self.cfgs.net.learned_params_path if self.cfgs.net.learned_params_path.endswith('.pt') \
-                    else self.cfgs.net.learned_params_path + '.pt')
-            self.model.load_state_dict(
-                torch.load(
-                    path, map_location=self.device
-                    )
-                )
-        else:
-            self.model.to(self.device)
-
-        self.model.train()
-        self.net_input = 0.1 * \
-            torch.randn(
-                1, *self.image_template.shape
-            ).to(self.device)
+    def reconstruct(self, image_metrics, use_scheduler = False):
 
         self.init_optimizer()
 
+        if use_scheduler:
+            self.init_scheduler()
+
         best_loss = np.inf
         best_output = self.model(
-            self.net_input
+            self.input
             ).detach()
 
-        with tqdm(range(self.cfgs.net.optim.iterations), desc='PET-DIP', disable=not self.cfgs.net.show_pbar) as pbar:
+        with tqdm(range(self.iterations), desc='PET-DIP') as pbar:
             for i in pbar:
 
                 self.optimizer.zero_grad()
-                output = self.model(self.net_input)
+                output = self.model(self.input)
 
                 loss = - torch.log(self.obj_fun_module(
                     output
@@ -85,6 +46,9 @@ class DeepImagePriorReconstructor():
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.optimizer.step()
+
+                if use_scheduler:
+                    self.scheduler.step()
 
                 for p in self.model.parameters():
                     p.data.clamp_(-1000, 1000) # MIN,MAX
@@ -102,8 +66,9 @@ class DeepImagePriorReconstructor():
                         crc, stdev = image_metrics.get_all_metrics(
                             output[0, ...].detach().cpu().numpy()
                             )
-                        self.writer.add_scalar('crc', crc, i)
-                        self.writer.add_scalar('stdev', stdev, i)
+                        for j in range(len(crc)):
+                            self.writer.add_scalar(str(j) + '_CRC_' + image_metrics.names_a[j], crc[j], i)
+                            self.writer.add_scalar(str(j) + '_STDEV_' + image_metrics.names_b[j], stdev[j], i)
 
         self.writer.close()
         
@@ -115,7 +80,6 @@ class DeepImagePriorReconstructor():
         np.save('profile', best_output[0,0, row_lesion, :].detach().cpu().numpy())
         np.save('crc',crc)
         np.save('std_dev',stdev)
-
         return best_output[0, 0, ...].cpu().numpy()
 
     def init_optimizer(self):
@@ -123,17 +87,14 @@ class DeepImagePriorReconstructor():
         Initialize the optimizer.
         """
 
-        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfgs.net.optim.lr)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
-    @property
-    def optimizer(self):
+    def init_scheduler(self):
         """
-        :class:`torch.optim.Optimizer` :
-        The optimizer, usually set by :meth:`init_optimizer`, which gets called
-        in :meth:`train`.
+        Initialize the scheduler.
         """
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(self, value):
-        self._optimizer = value
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, 
+                                                                    self.iterations, 
+                                                                    eta_min=0, 
+                                                                    last_epoch=-1, 
+                                                                    verbose=False)
