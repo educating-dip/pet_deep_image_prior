@@ -2,7 +2,7 @@ import sirf.STIR as pet
 import numpy as np
 from .deep_image_prior.utils import ComputeImageMetrics
 
-class DatasetClass(object):
+class DatasetClass:
     def __init__(self,cfg):
         if cfg.dataset.name == '2D':
             objective_function, image = Dataset2D(
@@ -12,7 +12,11 @@ class DatasetClass(object):
                                             cfg.dataset.image_xy)
 
         elif cfg.dataset.name == '3D_high':
-            raise NotImplementedError
+            objective_function, image = Dataset3D(
+                                            cfg.dataset.prompts,
+                                            cfg.dataset.additive,
+                                            cfg.dataset.multiplicative,
+                                            cfg.dataset.image_xy)
         else:
             raise NotImplementedError
         
@@ -94,6 +98,44 @@ def Dataset2D(prompts,
     objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_function.set_recompute_sensitivity(1)
     return objective_function, image
+
+
+def Dataset3D(prompts, 
+        additive, 
+        multiplicative, 
+        image_xy):
+        
+    # GET THE DATA
+    prompts = pet.AcquisitionData(prompts)
+    additive_factors = pet.AcquisitionData(additive)
+    multiplicative_factors = pet.AcquisitionData(multiplicative)
+    
+    # GET RECONSTRUCTION "VOLUME"
+    image = prompts.create_uniform_image(1.0).zoom_image(
+        zooms=(1., 1., 1.),
+        offsets_in_mm=(0., 0., 0.),
+        size=(-1, image_xy, image_xy)
+        )
+
+    # SET UP THE SENSITIVITY MODEL
+    normalisation_model = pet.AcquisitionSensitivityModel(multiplicative_factors)
+    normalisation_model.set_up(prompts)
+    sensitivity_vals = prompts.get_uniform_copy(1.0)
+    normalisation_model.normalise(sensitivity_vals)
+    sensitivity_factors = pet.AcquisitionSensitivityModel(sensitivity_vals)
+    sensitivity_factors.set_up(prompts)
+
+    # SET UP THE ACQUISITION MODEL
+    acquisition_model = pet.AcquisitionModelUsingParallelproj()
+    acquisition_model.set_up(prompts,image)
+    acquisition_model.set_additive_term(additive_factors)
+    acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
+
+    
+    # SET UP THE OBJECTIVE FUNCTIONAL
+    objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
+    objective_function.set_recompute_sensitivity(1)
+    return objective_function, image
     
 def QualityMetrics(
         quality_path,
@@ -117,4 +159,6 @@ def QualityMetrics(
                 ROIs_a=ROIs_a_masks,
                 ROIs_b=ROIs_b_masks,
                 emissions_a=ROIs_a_emissions,
-                emissions_b=ROIs_b_emissions)   
+                emissions_b=ROIs_b_emissions,
+                names_a=ROIs_a_names,   
+                names_b=ROIs_b_names)   

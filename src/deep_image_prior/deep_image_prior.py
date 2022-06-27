@@ -1,16 +1,9 @@
-import os
-import socket
-import datetime
 import torch
 import numpy as np
-import tensorboardX
-from hydra.utils import get_original_cwd
 from tqdm import tqdm
-from .network import UNet
 from .utils import normalize
 
-class DeepImagePriorReconstructor():
-
+class DeepImagePriorReconstructor:
     def __init__(self, 
                     model,
                     input,
@@ -54,6 +47,9 @@ class DeepImagePriorReconstructor():
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.optimizer.step()
 
+                if use_scheduler:
+                    self.scheduler.step()
+
                 for p in self.model.parameters():
                     p.data.clamp_(-1000, 1000) # MIN,MAX
             
@@ -70,8 +66,9 @@ class DeepImagePriorReconstructor():
                         crc, stdev = image_metrics.get_all_metrics(
                             output[0, ...].detach().cpu().numpy()
                             )
-                        self.writer.add_scalar('crc', crc, i)
-                        self.writer.add_scalar('stdev', stdev, i)
+                        for j in range(len(crc)):
+                            self.writer.add_scalar(str(j) + '_CRC_' + image_metrics.names_a[j], crc[j], i)
+                            self.writer.add_scalar(str(j) + '_STDEV_' + image_metrics.names_b[j], stdev[j], i)
 
         self.writer.close()
         
@@ -90,27 +87,14 @@ class DeepImagePriorReconstructor():
         Initialize the optimizer.
         """
 
-        self._optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
 
     def init_scheduler(self):
         """
         Initialize the scheduler.
         """
-        self._scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self._optimizer, 
+        self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer, 
                                                                     self.iterations, 
                                                                     eta_min=0, 
                                                                     last_epoch=-1, 
                                                                     verbose=False)
-
-    @property
-    def optimizer(self):
-        """
-        :class:`torch.optim.Optimizer` :
-        The optimizer, usually set by :meth:`init_optimizer`, which gets called
-        in :meth:`train`.
-        """
-        return self._optimizer
-
-    @optimizer.setter
-    def optimizer(self, value):
-        self._optimizer = value

@@ -71,17 +71,22 @@ def baseline(
 
     current_image = initial
     for i in range(0, num_subsets*num_epochs + 1):
-
-        writer.add_image('recon', \
-            normalize(current_image.as_array()), i)
-
+        if current_image.as_array().shape[0] == 1:
+            writer.add_image('recon', \
+                normalize(current_image.as_array()), i)
+        if current_image.as_array().shape[0] > 1:
+            writer.add_image('recon', \
+                normalize(current_image.as_array()[[5],...]), i)
+            
         sirf_reconstruction.update(current_image)
 
-        (crc, std) = \
+        (crc, stdev) = \
             quality_metrics.get_all_metrics(current_image.as_array())
+        
+        for j in range(len(crc)):
+            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i)
+            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i)
 
-        writer.add_scalar('CRC', crc, i)
-        writer.add_scalar('STDEV', std, i)
     writer.close()
 
 

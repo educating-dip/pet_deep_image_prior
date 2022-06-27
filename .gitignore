@@ -132,6 +132,7 @@ dmypy.json
 # folder
 
 experiments/2D
+experiments/3D_high
 
 #.pdf file
 *.pdf
