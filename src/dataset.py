@@ -5,14 +5,28 @@ from .deep_image_prior.utils import ComputeImageMetrics
 class DatasetClass:
     def __init__(self,cfg):
         if cfg.dataset.name == '2D':
-            objective_function, image = Dataset2D(
+            objective_function, acquisition_model, prompts, image = Dataset2D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
                                             cfg.dataset.image_xy)
 
         elif cfg.dataset.name == '3D_high':
-            objective_function, image = Dataset3D(
+            objective_function, acquisition_model, prompts, image = Dataset3D(
+                                            cfg.dataset.prompts,
+                                            cfg.dataset.additive,
+                                            cfg.dataset.multiplicative,
+                                            cfg.dataset.image_xy)
+
+        elif cfg.dataset.name == '3D_medium':
+            objective_function, acquisition_model, prompts, image = Dataset3D(
+                                            cfg.dataset.prompts,
+                                            cfg.dataset.additive,
+                                            cfg.dataset.multiplicative,
+                                            cfg.dataset.image_xy)
+
+        elif cfg.dataset.name == '3D_low':
+            objective_function, acquisition_model, prompts, image = Dataset3D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
@@ -26,12 +40,15 @@ class DatasetClass:
                                 cfg.prior.kappa,
                                 cfg.dataset.kappa)
 
-        self.initial =  self.get_initial(
+        self.initial = image.clone().fill(1) 
+        """ self.get_initial(
                             image,
                             cfg.prior.initial,
-                            cfg.dataset.initial)
+                            cfg.dataset.initial) """
         
         self.objective_function = objective_function
+        self.acquisition_model = acquisition_model
+        self.prompts = prompts
 
         self.quality_metrics =  QualityMetrics(
                                     cfg.dataset.quality_path,
@@ -97,7 +114,7 @@ def Dataset2D(prompts,
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_function.set_recompute_sensitivity(1)
-    return objective_function, image
+    return objective_function, acquisition_model, prompts, image 
 
 
 def Dataset3D(prompts, 
@@ -135,7 +152,7 @@ def Dataset3D(prompts,
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_function.set_recompute_sensitivity(1)
-    return objective_function, image
+    return objective_function, acquisition_model, prompts, image
     
 def QualityMetrics(
         quality_path,

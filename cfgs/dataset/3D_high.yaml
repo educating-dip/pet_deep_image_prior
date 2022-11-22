@@ -6,10 +6,12 @@ additive: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/my_total_ad
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/my_multfactors.hs
 initial: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
 kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_kappa.hv
-image_xy: 251
 ROIs_a:
   names: [ROI_AbdominalWallLesion,ROI_HeartLesion,ROI_LiverLesion,ROI_LungLesion,ROI_SpineLesion]
-  emissions: [507292.16,494310.44,577482.9,324277.66,401856.7]
+  emissions: [5076.64,2897.98,5800.59,3254.63,4179.69]
 ROIs_b:
   names: [ROI_Liver,ROI_Liver,ROI_Liver,ROI_Liver,ROI_Liver]
-  emissions: [383418.62,383418.62,383418.62,383418.62,383418.62]
+  emissions: [3827.61,3827.61,3827.61,3827.61,3827.61]
+image_xy: 251
+num_subsets: 4
+num_epochs: 20

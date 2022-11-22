@@ -1,0 +1,11 @@
+name: dp_unet
+arch:
+  scales: 4
+  use_norm: True
+optim:
+  lr: 1e-4
+  iterations: 30000
+torch_manual_seed: 1669
+random_input: True
+load_pretrain_model: False
+recon_from_randn: True

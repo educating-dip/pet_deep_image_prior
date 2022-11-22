@@ -7,7 +7,9 @@ import torch
 
 from .deep_image_prior import   normalize, \
                                 ObjectiveFunctionModule, \
-                                DeepImagePriorReconstructor
+                                DeepImagePriorReconstructor, \
+                                DPDeepImagePriorReconstructor, \
+                                PETAcquisitionModelModule
 
 from .deep_image_prior.network import *
 
@@ -34,6 +36,12 @@ class ModelClass(object):
 
         elif cfg.model.name == 'unet':
             unetprior(
+                cfg,
+                dataset,
+                writer)
+        
+        elif cfg.model.name == 'dp_unet':
+            dpunetprior(
                 cfg,
                 dataset,
                 writer)
@@ -86,7 +94,7 @@ def baseline(
         for j in range(len(crc)):
             writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i)
             writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i)
-
+    current_image.write(f'final_image.hv')
     writer.close()
 
 
@@ -180,3 +188,62 @@ def deepdecoderprior(
     reconstructor.reconstruct(
         dataset.quality_metrics,
         cfg.model.use_scheduler)
+
+def dpunetprior(
+        cfg, 
+        dataset, 
+        writer):
+
+    if cfg.model.torch_manual_seed:
+            torch.random.manual_seed(cfg.model.torch_manual_seed)
+
+    # Model
+    model = UNet(
+                1,
+                1,
+                channels=[128]*cfg.model.arch.scales,
+                skip_channels=[0]*cfg.model.arch.scales,
+                use_norm= cfg.model.arch.use_norm
+                )
+    
+    # Input
+    if cfg.model.random_input:
+        input = 0.1 * torch.randn(1, * dataset.initial.shape)
+    else:
+        NotImplemented
+
+    # Pre-trained
+    if cfg.model.load_pretrain_model:
+        path = cfg.model.learned_params_path
+        model.load_state_dict(torch.load(path))
+
+    device = torch.device(('cuda:0' if torch.cuda.is_available() else 'cpu'))
+    data = torch.tensor(dataset.prompts.as_array()).to(device)
+    acq_model_module =   PETAcquisitionModelModule(
+                                image_template = dataset.initial, 
+                                data_template = dataset.prompts, 
+                                acq_model = dataset.acquisition_model)
+
+    iterations = cfg.model.optim.iterations
+    lr = cfg.model.optim.lr
+
+    const = data*torch.log(data+1e-8)
+    const = const.sum().to(device)
+    loss = torch.nn.PoissonNLLLoss(log_input=False,reduction='sum')
+    func = lambda x: loss(x, data) - x.detach().sum() + const
+    dp_approx = data.shape[-1]*data.shape[-2]/2
+    dp_nearly_exact_fnc = lambda x: dp_approx + torch.sum((x**2+2.5702*x-1.5205)/ \
+        (12 * x**3 - 5.6244*x**2 + 17.9347*x + 3.0410))
+    dp_nearly_exact = dp_nearly_exact_fnc(data)
+    reconstructor = DPDeepImagePriorReconstructor(
+        model,
+        input,
+        acq_model_module,
+        func,
+        iterations,
+        lr,
+        writer,
+        dp_approx,
+        dp_nearly_exact)
+
+    reconstructor.reconstruct(dataset.quality_metrics)

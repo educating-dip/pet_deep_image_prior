@@ -1,10 +1,16 @@
-name: "3D_low"
-quality_path: "/home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D"
-prompts: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_Prompts2d.hs
-additive: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_total_additive_52d.hs
+name: 3D_low
+modality: PET
+quality_path: /home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D
+prompts: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_Prompts.hs
+additive: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_total_additive_5.hs
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_multfactors.hs
-initial: /home/user/sirf_stir_priors/pet_deep_image_prior/notebook_WIP/convert_to_2D/OSEM_2D_24.hv
-kappa: /home/user/sirf_stir_priors/pet_deep_image_prior/notebook_WIP/convert_to_2D/my_kappa.hv
+initial: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
+kappa: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/convert_to_2D/my_kappa.hv
+ROIs_a:
+  names: [ROI_AbdominalWallLesion,ROI_HeartLesion,ROI_LiverLesion,ROI_LungLesion,ROI_SpineLesion]
+  emissions: [5076.64,2897.98,5800.59,3254.63,4179.69]
+ROIs_b:
+  names: [ROI_Liver,ROI_Liver,ROI_Liver,ROI_Liver,ROI_Liver]
+  emissions: [3827.61,3827.61,3827.61,3827.61,3827.61]
 image_xy: 251
 num_subsets: 4
-num_epochs: 100
