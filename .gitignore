@@ -133,6 +133,8 @@ dmypy.json
 
 experiments/2D
 experiments/3D_high
+experiments/3D_medium
+experiments/3D_low
 
 #.pdf file
 *.pdf
