@@ -5,32 +5,36 @@ from .deep_image_prior.utils import ComputeImageMetrics
 class DatasetClass:
     def __init__(self,cfg):
         if cfg.dataset.name == '2D':
-            objective_function, acquisition_model, prompts, image = Dataset2D(
+            objective_function, acquisition_model, prompts, image, sensitivity_image = Dataset2D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
                                             cfg.dataset.image_xy)
+            self.sensitivity_image = sensitivity_image
 
         elif cfg.dataset.name == '3D_high':
-            objective_function, acquisition_model, prompts, image = Dataset3D(
+            objective_function, acquisition_model, prompts, image, sensitivity_image = Dataset3D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
                                             cfg.dataset.image_xy)
+            self.sensitivity_image = sensitivity_image
 
         elif cfg.dataset.name == '3D_medium':
-            objective_function, acquisition_model, prompts, image = Dataset3D(
+            objective_function, acquisition_model, prompts, image, sensitivity_image = Dataset3D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
                                             cfg.dataset.image_xy)
+            self.sensitivity_image = sensitivity_image
 
         elif cfg.dataset.name == '3D_low':
-            objective_function, acquisition_model, prompts, image = Dataset3D(
+            objective_function, acquisition_model, prompts, image, sensitivity_image = Dataset3D(
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
                                             cfg.dataset.image_xy)
+            self.sensitivity_image = sensitivity_image
         else:
             raise NotImplementedError
         
@@ -40,11 +44,11 @@ class DatasetClass:
                                 cfg.prior.kappa,
                                 cfg.dataset.kappa)
 
-        self.initial = image.clone().fill(1) 
-        """ self.get_initial(
-                            image,
-                            cfg.prior.initial,
-                            cfg.dataset.initial) """
+        if 'initial' in cfg.prior.keys():
+            self.initial =  self.get_initial(
+                                image,
+                                cfg.prior.initial,
+                                cfg.dataset.initial)
         
         self.objective_function = objective_function
         self.acquisition_model = acquisition_model
@@ -145,14 +149,16 @@ def Dataset3D(prompts,
     # SET UP THE ACQUISITION MODEL
     acquisition_model = pet.AcquisitionModelUsingParallelproj()
     acquisition_model.set_up(prompts,image)
-    acquisition_model.set_additive_term(additive_factors)
     acquisition_model.set_acquisition_sensitivity(sensitivity_factors)
+    acquisition_model.set_additive_term(additive_factors)
 
     
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_function.set_recompute_sensitivity(1)
-    return objective_function, acquisition_model, prompts, image
+    sensitivity_image = acquisition_model.backward(prompts.get_uniform_copy(1))
+
+    return objective_function, acquisition_model, prompts, image, sensitivity_image
     
 def QualityMetrics(
         quality_path,

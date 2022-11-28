@@ -4,6 +4,8 @@ import tensorboardX
 import datetime
 import socket
 import torch
+import numpy as np
+import math
 
 from .deep_image_prior import   normalize, \
                                 ObjectiveFunctionModule, \
@@ -29,9 +31,11 @@ class ModelClass(object):
             baseline(
                 cfg.model.num_subsets,
                 cfg.model.num_epochs,
+                cfg.model.eta,
                 dataset.objective_function,
                 dataset.initial,
                 dataset.quality_metrics,
+                dataset.sensitivity_image,
                 writer)
 
         elif cfg.model.name == 'unet':
@@ -55,46 +59,98 @@ class ModelClass(object):
         else:
             raise NotImplementedError
 
+def herman_meyer_order(n):
+    # Assuming that the subsets are in geometrical order
+    n_variable = n
+    i = 2
+    factors = []
+    while i * i <= n_variable:
+        if n_variable % i:
+            i += 1
+        else:
+            n_variable //= i
+            factors.append(i)
+    if n_variable > 1:
+        factors.append(n_variable)
+    n_factors = len(factors)
+    order =  [0 for _ in range(n)]
+    value = 0
+    for factor_n in range(n_factors):
+        n_rep_value = 0
+        if factor_n == 0:
+            n_change_value = 1
+        else:
+            n_change_value = math.prod(factors[:factor_n])
+        for element in range(n):
+            mapping = value
+            n_rep_value += 1
+            if n_rep_value >= n_change_value:
+                value = value + 1
+                n_rep_value = 0
+            if value == factors[factor_n]:
+                value = 0
+            order[element] = order[element] + math.prod(factors[factor_n+1:]) * mapping
+    return order
 
 def baseline(
         num_subsets, 
-        num_epochs, 
+        num_epochs,
+        gamma,
         objective_function, 
         initial, 
         quality_metrics,
+        sensitivity_image,
         writer):
 
     image = initial.get_uniform_copy(1)
 
     # CREATE RECONSTRUCTION OBJECT
-    sirf_reconstruction = pet.OSMAPOSLReconstructor()
-    sirf_reconstruction.set_objective_function(objective_function)
-    num_subiterations = num_subsets*num_epochs
-    sirf_reconstruction.set_num_subsets(num_subsets)                        
-    sirf_reconstruction.set_num_subiterations(num_subiterations)
-
+    objective_function.set_num_subsets(num_subsets)
     # INITIALISE THE RECONSTRUCTION OBJECT
-    sirf_reconstruction.set_up(image)
-    sirf_reconstruction.set_current_estimate(initial)
+    objective_function.set_up(image)
 
-    current_image = initial
-    for i in range(0, num_subsets*num_epochs + 1):
-        if current_image.as_array().shape[0] == 1:
-            writer.add_image('recon', \
-                normalize(current_image.as_array()), i)
-        if current_image.as_array().shape[0] > 1:
-            writer.add_image('recon', \
-                normalize(current_image.as_array()[[5],...]), i)
-            
-        sirf_reconstruction.update(current_image)
-
+    x_k = initial
+    delta = initial.clone().fill(1e-9)
+    alpha_k = 1
+    outside_fov = sensitivity_image.as_array() == 0
+    ordered_subsets = herman_meyer_order(num_subsets)
+    print(f"Subset order: {ordered_subsets}")
+    for i in range(num_epochs):
+        preconditioner = ((x_k+delta)/(sensitivity_image))
+        tmp = preconditioner.as_array()
+        tmp[outside_fov] = 0
+        preconditioner.fill(tmp)
+        alpha_k = 1/(gamma*i+1)
+        print(f"Epoch {i+1}")
+        print(f"Precond norm {preconditioner.norm()}")
+        print(f"Alpha k is {alpha_k}")
+        if np.isnan(x_k.as_array()).any():
+            print(f"Eta value is {gamma}")
+            break
+        for j in range(num_subsets):
+            ssg = objective_function.get_subset_gradient(x_k, ordered_subsets[j])
+            precond_ssg = preconditioner * num_subsets * ssg
+            if gamma == 0:
+                precond_ssg = preconditioner * ssg
+            x_k = x_k + alpha_k * precond_ssg
+            print(f"SSGradient norm {ssg.norm()}")
+            tmp = x_k.as_array()
+            tmp[tmp<0] = 0
+            x_k.fill(tmp)
+        obj_val = objective_function.value(x_k)
+        writer.add_scalar('OBJ_FUNC', obj_val, i + 1)
         (crc, stdev) = \
-            quality_metrics.get_all_metrics(current_image.as_array())
-        
-        for j in range(len(crc)):
-            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i)
-            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i)
-    current_image.write(f'final_image.hv')
+            quality_metrics.get_all_metrics(x_k.as_array())
+        writer.add_scalar(str(0) + '_STDEV_' + quality_metrics.names_b[0], stdev[0], i + 1)
+        for k in range(len(crc)):
+            writer.add_scalar(str(k) + '_CRC_' + quality_metrics.names_a[k], crc[k], i + 1)
+        """ if x_k_1.as_array().shape[0] == 1:
+            writer.add_image('recon', \
+                normalize(x_k_1.as_array()), i)
+        elif x_k_1.as_array().shape[0] > 1:
+            writer.add_image('recon', \
+                normalize(x_k_1.as_array()[[5],...]), i) """
+        x_k.write(f'Volume_epoch_{i+1}.hv')
     writer.close()
 
 
