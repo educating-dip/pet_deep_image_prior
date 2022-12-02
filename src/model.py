@@ -27,8 +27,16 @@ class ModelClass(object):
         logdir = os.path.join('./', current_time + '_' + socket.gethostname())
         writer = tensorboardX.SummaryWriter(logdir=logdir)
         
-        if cfg.model.name == 'baseline':
-            baseline(
+        if cfg.model.name == 'osem':
+            osem(
+                cfg.model.num_subsets,
+                cfg.model.num_epochs,
+                dataset.objective_function,
+                dataset.initial,
+                dataset.quality_metrics,
+                writer)
+        if cfg.model.name == 'bsrem':
+            bsrem(
                 cfg.model.num_subsets,
                 cfg.model.num_epochs,
                 cfg.model.eta,
@@ -37,6 +45,17 @@ class ModelClass(object):
                 dataset.quality_metrics,
                 dataset.sensitivity_image,
                 writer)
+        if cfg.model.name == 'svrg':
+            svrg(
+                cfg.model.num_subsets,
+                cfg.model.num_epochs,
+                cfg.model.gamma,
+                dataset.objective_function,
+                dataset.initial,
+                dataset.quality_metrics,
+                dataset.sensitivity_image,
+                writer)
+
 
         elif cfg.model.name == 'unet':
             unetprior(
@@ -92,10 +111,41 @@ def herman_meyer_order(n):
             order[element] = order[element] + math.prod(factors[factor_n+1:]) * mapping
     return order
 
-def baseline(
+def osem(
+        num_subsets, 
+        num_epochs, 
+        objective_function, 
+        initial, 
+        quality_metrics,
+        writer):
+    image = initial.get_uniform_copy(1)
+    # CREATE RECONSTRUCTION OBJECT
+    sirf_reconstruction = pet.OSMAPOSLReconstructor()
+    sirf_reconstruction.set_objective_function(objective_function)
+    num_subiterations = num_subsets*num_epochs
+    sirf_reconstruction.set_num_subsets(num_subsets)                        
+    sirf_reconstruction.set_num_subiterations(num_subiterations)
+    # INITIALISE THE RECONSTRUCTION OBJECT
+    sirf_reconstruction.set_up(image)
+    sirf_reconstruction.set_current_estimate(initial)
+    current_image = initial
+    for i in range(num_epochs):
+        for j in range(num_subsets):
+            sirf_reconstruction.update(current_image)
+        obj_val = objective_function.value(current_image)
+        writer.add_scalar('OBJ_FUNC', obj_val, i+1)
+        (crc, stdev) = \
+            quality_metrics.get_all_metrics(current_image.as_array())
+        current_image.write(f'Volume_epoch_{i+1}.hv')
+        for j in range(len(crc)):
+            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i+1)
+            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i+1)
+    writer.close()
+
+def bsrem(
         num_subsets, 
         num_epochs,
-        gamma,
+        eta,
         objective_function, 
         initial, 
         quality_metrics,
@@ -103,7 +153,6 @@ def baseline(
         writer):
 
     image = initial.get_uniform_copy(1)
-
     # CREATE RECONSTRUCTION OBJECT
     objective_function.set_num_subsets(num_subsets)
     # INITIALISE THE RECONSTRUCTION OBJECT
@@ -120,36 +169,79 @@ def baseline(
         tmp = preconditioner.as_array()
         tmp[outside_fov] = 0
         preconditioner.fill(tmp)
-        alpha_k = 1/(gamma*i+1)
+        alpha_k = 1/(eta*i+1)
         print(f"Epoch {i+1}")
         print(f"Precond norm {preconditioner.norm()}")
         print(f"Alpha k is {alpha_k}")
         if np.isnan(x_k.as_array()).any():
-            print(f"Eta value is {gamma}")
+            print(f"Eta value of {eta} caused nans")
             break
         for j in range(num_subsets):
             ssg = objective_function.get_subset_gradient(x_k, ordered_subsets[j])
             precond_ssg = preconditioner * num_subsets * ssg
-            if gamma == 0:
-                precond_ssg = preconditioner * ssg
             x_k = x_k + alpha_k * precond_ssg
             print(f"SSGradient norm {ssg.norm()}")
             tmp = x_k.as_array()
             tmp[tmp<0] = 0
             x_k.fill(tmp)
         obj_val = objective_function.value(x_k)
-        writer.add_scalar('OBJ_FUNC', obj_val, i + 1)
+        writer.add_scalar('OBJ_FUNC', obj_val, i+1)
         (crc, stdev) = \
             quality_metrics.get_all_metrics(x_k.as_array())
-        writer.add_scalar(str(0) + '_STDEV_' + quality_metrics.names_b[0], stdev[0], i + 1)
-        for k in range(len(crc)):
-            writer.add_scalar(str(k) + '_CRC_' + quality_metrics.names_a[k], crc[k], i + 1)
-        """ if x_k_1.as_array().shape[0] == 1:
-            writer.add_image('recon', \
-                normalize(x_k_1.as_array()), i)
-        elif x_k_1.as_array().shape[0] > 1:
-            writer.add_image('recon', \
-                normalize(x_k_1.as_array()[[5],...]), i) """
+        for j in range(len(crc)):
+            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i+1)
+            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i+1)
+        x_k.write(f'Volume_epoch_{i+1}.hv')
+    writer.close()
+
+def svrg(
+        num_subsets, 
+        num_epochs,
+        gamma,
+        objective_function, 
+        initial, 
+        quality_metrics,
+        sensitivity_image,
+        writer):
+
+    image = initial.get_uniform_copy(1)
+    objective_function.set_num_subsets(num_subsets)
+    objective_function.set_up(image)
+
+    x_k = initial
+    delta = initial.clone().fill(1e-9)
+    alpha_k = 1
+    outside_fov = sensitivity_image.as_array() == 0
+    ordered_subsets = herman_meyer_order(num_subsets)
+    print(f"Subset order: {ordered_subsets}")
+    for i in range(num_epochs):
+        preconditioner = ((x_k+delta)/(sensitivity_image))
+        tmp = preconditioner.as_array()
+        tmp[outside_fov] = 0
+        preconditioner.fill(tmp)
+        print(f"Epoch {i+1}")
+        print(f"Precond norm {preconditioner.norm()}")
+        if i % gamma == 0:
+            x_Anc = x_k
+            G_Anc = objective_function.get_gradient(x_k)
+            x_k = x_k + preconditioner * G_Anc
+        else:
+            for j in range(num_subsets):
+                ssg = objective_function.get_subset_gradient(x_k, ordered_subsets[j])
+                ssg_Anc = objective_function.get_subset_gradient(x_Anc, ordered_subsets[j])
+                ssg_svrg = num_subsets * (ssg - ssg_Anc) + G_Anc
+                precond_ssg_svrg = preconditioner * ssg_svrg
+                x_k = x_k + precond_ssg_svrg
+                tmp = x_k.as_array()
+                tmp[tmp<0] = 0
+                x_k.fill(tmp)
+        obj_val = objective_function.value(x_k)
+        writer.add_scalar('OBJ_FUNC', obj_val, i+1)
+        (crc, stdev) = \
+            quality_metrics.get_all_metrics(x_k.as_array())
+        for j in range(len(crc)):
+            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i+1)
+            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i+1)
         x_k.write(f'Volume_epoch_{i+1}.hv')
     writer.close()
 

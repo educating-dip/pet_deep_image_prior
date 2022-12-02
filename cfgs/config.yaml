@@ -12,8 +12,8 @@ hydra:
           - prior
 
 defaults:
-  - dataset: 2D_high
+  - dataset: 3D_low
   - prior: None
-  - model: baseline
+  - model: osem
 seed: 1
 num_images: 1

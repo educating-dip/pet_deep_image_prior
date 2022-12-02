@@ -1,0 +1,3 @@
+name: osem
+num_subsets: 24
+num_epochs: 200

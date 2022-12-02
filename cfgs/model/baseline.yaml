@@ -1,5 +1,0 @@
-name: baseline
-num_subsets: 24
-num_epochs: 200
-algoritm: BSREM
-eta: 0.2

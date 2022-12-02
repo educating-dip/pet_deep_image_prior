@@ -1,0 +1,4 @@
+name: svrg
+num_subsets: 32
+num_epochs: 200
+gamma: 2
