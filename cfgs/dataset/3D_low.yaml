@@ -4,7 +4,7 @@ quality_path: /home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D
 prompts: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_Prompts.hs
 additive: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_total_additive_5.hs
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/my_multfactors.hs
-initial: /home/user/PET_DIP/pet_deep_image_prior/experiments/3D_low/baseline/None/model.eta=0,model.num_epochs=1/final_image.hv
+initial: /home/user/PET_DIP/pet_deep_image_prior/experiments/3D_low/osem/None/Volume_epoch_1.hv
 kappa: /home/user/PET_DIP/D690XCATnonTOF/50MillionEvents/Source/convert_to_2D/my_kappa.hv
 ROIs_a:
   names: [ROI_AbdominalWallLesion,ROI_HeartLesion,ROI_LiverLesion,ROI_LungLesion,ROI_SpineLesion]
