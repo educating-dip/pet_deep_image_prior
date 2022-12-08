@@ -8,9 +8,9 @@ initial: /home/user/PET_DIP/pet_deep_image_prior/experiments/3D_medium/osem/None
 kappa: /home/user/PET_DIP/D690XCATnonTOF/250MillionEvents/Source/convert_to_2D/my_kappa.hv
 ROIs_a:
   names: [ROI_AbdominalWallLesion,ROI_HeartLesion,ROI_LiverLesion,ROI_LungLesion,ROI_SpineLesion]
-  emissions: [507292.15625,494310.4375,577482.875,324277.65625,401856.6875]
+  emissions: [1339449.375,1199559.5,1569438.125,745517.1875,1004277.6875]
 ROIs_b:
-  names: [ROI_AbdominalWall,ROI_Heart,ROI_Liver,ROI_Lung,ROI_Spine]
-  emissions: [310352.03125, 292353.46875, 383409.65625, 126524.3046875, 226022.859375]
+  names: [ROI_AbdominalWallBackground,ROI_HeartBackground,ROI_LiverBackground,ROI_LungBackground,ROI_SpineBackground]
+  emissions: [1055111.0, 1030345.4375, 1351379.375, 446085.65625, 770850.75]
 image_xy: 128
 voxel_size: 4
