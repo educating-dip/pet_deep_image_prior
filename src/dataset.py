@@ -17,7 +17,8 @@ class DatasetClass:
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
-                                            cfg.dataset.image_xy)
+                                            cfg.dataset.image_xy,
+                                            cfg.dataset.voxel_size)
             self.sensitivity_image = sensitivity_image
 
         elif cfg.dataset.name == '3D_medium':
@@ -25,7 +26,8 @@ class DatasetClass:
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
-                                            cfg.dataset.image_xy)
+                                            cfg.dataset.image_xy,
+                                            cfg.dataset.voxel_size)
             self.sensitivity_image = sensitivity_image
 
         elif cfg.dataset.name == '3D_low':
@@ -33,7 +35,8 @@ class DatasetClass:
                                             cfg.dataset.prompts,
                                             cfg.dataset.additive,
                                             cfg.dataset.multiplicative,
-                                            cfg.dataset.image_xy)
+                                            cfg.dataset.image_xy,
+                                            cfg.dataset.voxel_size)
             self.sensitivity_image = sensitivity_image
         else:
             raise NotImplementedError
@@ -124,7 +127,8 @@ def Dataset2D(prompts,
 def Dataset3D(prompts, 
         additive, 
         multiplicative, 
-        image_xy):
+        image_xy,
+        voxel_size):
         
     # GET THE DATA
     prompts = pet.AcquisitionData(prompts)
@@ -133,7 +137,7 @@ def Dataset3D(prompts,
     
     # GET RECONSTRUCTION "VOLUME"
     image = prompts.create_uniform_image(1.0).zoom_image(
-        zooms=(1., 1., 1.),
+        zooms=(1., 2.1306/voxel_size, 2.1306/voxel_size),
         offsets_in_mm=(0., 0., 0.),
         size=(-1, image_xy, image_xy)
         )

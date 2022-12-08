@@ -12,4 +12,5 @@ ROIs_a:
 ROIs_b:
   names: [ROI_AbdominalWall,ROI_Heart,ROI_Liver,ROI_Lung,ROI_Spine]
   emissions: [310352.03125, 292353.46875, 383409.65625, 126524.3046875, 226022.859375]
-image_xy: 251
+image_xy: 128
+voxel_size: 4
