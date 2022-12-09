@@ -15,8 +15,6 @@ from .deep_image_prior import   normalize, \
 
 from .deep_image_prior.network import *
 
-
-
 class ModelClass(object):
     def __init__(
             self, 
@@ -26,7 +24,6 @@ class ModelClass(object):
         current_time = datetime.datetime.now().strftime('%b%d_%H-%M-%S')
         logdir = os.path.join('./', current_time + '_' + socket.gethostname())
         writer = tensorboardX.SummaryWriter(logdir=logdir)
-        
         if cfg.model.name == 'osem':
             osem(
                 cfg.model.num_subsets,
@@ -35,7 +32,7 @@ class ModelClass(object):
                 dataset.initial,
                 dataset.quality_metrics,
                 writer)
-        if cfg.model.name == 'bsrem':
+        elif cfg.model.name == 'bsrem':
             bsrem(
                 cfg.model.num_subsets,
                 cfg.model.num_epochs,
@@ -45,7 +42,7 @@ class ModelClass(object):
                 dataset.quality_metrics,
                 dataset.sensitivity_image,
                 writer)
-        if cfg.model.name == 'svrg':
+        elif cfg.model.name == 'svrg':
             svrg(
                 cfg.model.num_subsets,
                 cfg.model.num_epochs,
@@ -55,14 +52,12 @@ class ModelClass(object):
                 dataset.quality_metrics,
                 dataset.sensitivity_image,
                 writer)
-
-
-        elif cfg.model.name == 'unet':
+        elif cfg.model.name == 'unet' or cfg.model.name == 'unet_3d':
             unetprior(
                 cfg,
                 dataset,
                 writer)
-        
+    
         elif cfg.model.name == 'dp_unet':
             dpunetprior(
                 cfg,
@@ -130,6 +125,7 @@ def osem(
     sirf_reconstruction.set_current_estimate(initial)
     current_image = initial
     for i in range(num_epochs):
+        print(f"Epoch {i+1}")
         for j in range(num_subsets):
             sirf_reconstruction.update(current_image)
         obj_val = objective_function.value(current_image)
@@ -246,7 +242,6 @@ def svrg(
     writer.close()
 
 
-
 def unetprior(
         cfg, 
         dataset, 
@@ -256,17 +251,43 @@ def unetprior(
             torch.random.manual_seed(cfg.model.torch_manual_seed)
 
     # Model
-    model = UNet(
-                1,
-                1,
-                channels=[128]*cfg.model.arch.scales,
-                skip_channels=[0]*cfg.model.arch.scales,
-                use_norm= cfg.model.arch.use_norm
-                )
-    
+    if cfg.model.name == 'unet': 
+        model = UNet(
+                    1,
+                    1,
+                    channels=[128]*cfg.model.arch.scales,
+                    skip_channels=[0]*cfg.model.arch.scales,
+                    use_norm= cfg.model.arch.use_norm
+                    )
+    elif cfg.model.name == 'unet_3d':
+        model = UNet3D(
+                      in_ch=1, 
+                      out_ch=1, 
+                      channels=cfg.model.arch.channels[:cfg.model.arch.scales],
+                      down_channel_overrides=cfg.model.arch.down_channel_overrides, 
+                      down_single_conv=cfg.model.arch.down_single_conv,
+                      skip_channels=cfg.model.arch.skip_channels, 
+                      use_sigmoid=cfg.model.arch.use_sigmoid,
+                      use_norm=cfg.model.arch.use_norm,
+                      out_kernel_size=cfg.model.arch.out_kernel_size,
+                      pre_out_channels=cfg.model.arch.pre_out_channels, 
+                      pre_out_kernel_size=cfg.model.arch.pre_out_kernel_size,
+                      insert_res_blocks_before=cfg.model.arch.insert_res_blocks_before,
+                      use_relu_out=cfg.model.arch.use_relu_out, 
+                      approx_conv3d_at_scales=cfg.model.arch.approx_conv3d_at_scales, 
+                      approx_conv3d_low_rank_dim=cfg.model.arch.approx_conv3d_low_rank_dim
+                      )
+    else: 
+        NotImplemented
+
     # Input
     if cfg.model.random_input:
-        input = 0.1 * torch.randn(1, * dataset.initial.shape)
+        if len(dataset.initial.shape) == 2:
+            input = 0.1 * torch.randn(1, * dataset.initial.shape)
+        elif len(dataset.initial.shape) == 3:
+            input = 0.1 * torch.randn(1, 1, * dataset.initial.shape)
+        else:
+            NotImplemented
     else:
         NotImplemented
 

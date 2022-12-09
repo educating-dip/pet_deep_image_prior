@@ -12,9 +12,9 @@ class _objectiveFunctionModule(torch.autograd.Function):
             sirf_obj):
 
         ctx.sirf_obj = sirf_obj
-        ctx.x = x
+        ctx.x = x.squeeze()
         ctx.image_template = image_template
-        x_np = x.detach().cpu().numpy()
+        x_np = x.detach().cpu().numpy().squeeze()
         x_np = ctx.image_template.fill(x_np)
         value_np = ctx.sirf_obj.get_value(x_np)
         return torch.tensor(value_np).to(x.device)
@@ -33,8 +33,7 @@ class _objectiveFunctionModule(torch.autograd.Function):
         grads = torch.from_numpy(
             grads_np).to(in_grad.device
             ) * in_grad
-
-        return grads, None, None, None
+        return grads.unsqueeze(dim=0), None, None, None
 
 class ObjectiveFunctionModule(torch.nn.Module):
     def __init__(self, image_template, obj_fun):

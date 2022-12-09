@@ -29,9 +29,8 @@ class DeepImagePriorReconstructor:
             self.init_scheduler()
 
         best_loss = np.inf
-        best_output = self.model(
-            self.input
-            ).detach()
+        with torch.no_grad(): 
+            best_output = self.model(self.input)
 
         with tqdm(range(self.iterations), desc='PET-DIP') as pbar:
             for i in pbar:
@@ -39,10 +38,7 @@ class DeepImagePriorReconstructor:
                 self.optimizer.zero_grad()
                 output = self.model(self.input)
 
-                loss = - torch.log(self.obj_fun_module(
-                    output
-                    )
-                )
+                loss = - self.obj_fun_module(output)
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1)
                 self.optimizer.step()
@@ -52,16 +48,16 @@ class DeepImagePriorReconstructor:
 
                 for p in self.model.parameters():
                     p.data.clamp_(-1000, 1000) # MIN,MAX
-            
+
                 if loss.item() < best_loss:
                     best_loss = loss.item()
                     best_output = output.detach()
 
                 self.writer.add_scalar('loss', loss.item(),  i)
                 if i % 100 == 0:
-                    self.writer.add_image('reco', normalize(
-                        output[0, ...].detach().cpu().numpy() 
-                        ), i)
+                    # self.writer.add_image('reco', normalize(
+                    #     output[0, ...].detach().cpu().numpy() 
+                    #     ), i)
                     if i  > 2500:
                         crc, stdev = image_metrics.get_all_metrics(
                             output[0, ...].detach().cpu().numpy()

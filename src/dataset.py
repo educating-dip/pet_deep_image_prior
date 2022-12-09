@@ -181,7 +181,6 @@ def QualityMetrics(
         ROIs_b_masks.append(np.load(
             quality_path + "/" + ROIs_b_names[i] + ".npy")
             )
-
     return  ComputeImageMetrics(
                 ROIs_a=ROIs_a_masks,
                 ROIs_b=ROIs_b_masks,

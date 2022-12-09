@@ -34,8 +34,6 @@ class PriorClass(object):
 def NoPrior(
         initial,
         objective_function):
-
-        print("Just plain old OSEM")
         objective_function.set_up(initial)
 
 def QuadraticPrior(

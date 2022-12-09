@@ -4,10 +4,10 @@ quality_path: /home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D
 prompts: /home/user/PET_DIP/D690XCATnonTOF/250MillionEvents/Source/my_Prompts.hs
 additive: /home/user/PET_DIP/D690XCATnonTOF/250MillionEvents/Source/my_total_additive_5.hs
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/250MillionEvents/Source/my_multfactors.hs
-initial: /home/user/PET_DIP/pet_deep_image_prior/experiments/3D_medium/osem/None/Volume_epoch_1.hv
+initial: /home/user/PET_DIP/pet_deep_image_prior/experiments/3D_medium/osem/None/model.num_epochs=10/Volume_epoch_1.hv
 kappa: /home/user/PET_DIP/D690XCATnonTOF/250MillionEvents/Source/convert_to_2D/my_kappa.hv
 ROIs_a:
-  names: [ROI_AbdominalWallLesion,ROI_HeartLesion,ROI_LiverLesion,ROI_LungLesion,ROI_SpineLesion]
+  names: [ROI_AbdominalWallTumour,ROI_HeartTumour,ROI_LiverTumour,ROI_LungTumour,ROI_SpineTumour]
   emissions: [1339449.375,1199559.5,1569438.125,745517.1875,1004277.6875]
 ROIs_b:
   names: [ROI_AbdominalWallBackground,ROI_HeartBackground,ROI_LiverBackground,ROI_LungBackground,ROI_SpineBackground]
