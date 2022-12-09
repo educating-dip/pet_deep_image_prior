@@ -20,7 +20,7 @@ from src import (
 
 @hydra.main(config_path='../cfgs', config_name='config')
 def reconstruction(cfg : DictConfig) -> None:
-    
+
     dataset = DatasetClass(cfg)
 
     PriorClass(cfg, dataset)
