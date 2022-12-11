@@ -121,7 +121,8 @@ def Dataset2D(prompts,
     # SET UP THE OBJECTIVE FUNCTIONAL
     objective_function = pet.make_Poisson_loglikelihood(prompts, acq_model=acquisition_model)
     objective_function.set_recompute_sensitivity(1)
-    return objective_function, acquisition_model, prompts, image 
+    sensitivity_image = acquisition_model.backward(prompts.get_uniform_copy(1))
+    return objective_function, acquisition_model, prompts, image, sensitivity_image
 
 
 def Dataset3D(prompts, 

@@ -8,7 +8,8 @@ import numpy as np
 import math
 
 from .deep_image_prior import   normalize, \
-                                ObjectiveFunctionModule, \
+                                ObjectiveFunctionModule2D, \
+                                ObjectiveFunctionModule3D, \
                                 DeepImagePriorReconstructor, \
                                 DPDeepImagePriorReconstructor, \
                                 PETAcquisitionModelModule
@@ -282,24 +283,31 @@ def unetprior(
 
     # Input
     if cfg.model.random_input:
-        if len(dataset.initial.shape) == 2:
+        if dataset.initial.shape[0] == 1:
             input = 0.1 * torch.randn(1, * dataset.initial.shape)
-        elif len(dataset.initial.shape) == 3:
+        elif dataset.initial.shape[0] != 1:
             input = 0.1 * torch.randn(1, 1, * dataset.initial.shape)
         else:
             NotImplemented
     else:
         NotImplemented
-
     # Pre-trained
     if cfg.model.load_pretrain_model:
         path = cfg.model.learned_params_path
         model.load_state_dict(torch.load(path))
 
-    obj_fun_module =    ObjectiveFunctionModule(
-                            image_template=dataset.initial.get_uniform_copy(1), 
-                            obj_fun = dataset.objective_function
-                            )
+    if dataset.initial.shape[0] == 1:
+        obj_fun_module =    ObjectiveFunctionModule2D(
+                                image_template=dataset.initial.get_uniform_copy(1), 
+                                obj_fun = dataset.objective_function
+                                )
+    elif dataset.initial.shape[0] != 1:
+        obj_fun_module =    ObjectiveFunctionModule3D(
+                                image_template=dataset.initial.get_uniform_copy(1), 
+                                obj_fun = dataset.objective_function
+                                )
+    else:
+        NotImplemented
 
     iterations = cfg.model.optim.iterations
     lr = cfg.model.optim.lr

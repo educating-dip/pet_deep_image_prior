@@ -6,4 +6,10 @@ additive: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_
 multiplicative: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_multfactors2d.hs
 initial: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/OSEM_2D_24.hv
 kappa: /home/user/PET_DIP/D690XCATnonTOF/1200MillionEvents/Source/convert_to_2D/my_kappa.hv
+ROIs_a:
+  names: [ROI_LungLesion]
+  emissions: [3254.626]
+ROIs_b:
+  names: [ROI_Lung]
+  emissions: [1254.6259]
 image_xy: 251
