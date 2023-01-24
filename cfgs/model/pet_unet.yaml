@@ -1,0 +1,10 @@
+name: pet_unet
+optim:
+  lr: 1.
+  iterations: 5000
+torch_manual_seed: 1669
+random_input: True
+load_pretrain_model: False
+recon_from_randn: True
+use_scheduler: True
+every_iter_save: False

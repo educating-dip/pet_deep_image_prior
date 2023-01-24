@@ -1,4 +1,4 @@
 name: bsrem
 num_subsets: 32
-num_epochs: 200
-eta: 0.1
+num_epochs: 50
+eta: 0.4

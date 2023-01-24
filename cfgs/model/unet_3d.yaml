@@ -21,6 +21,7 @@ optim:
   gamma: 1e-1
 show_pbar: True
 random_input: True
+use_scheduler: False
 torch_manual_seed: 1669
 load_pretrain_model: False
 recon_from_randn: True

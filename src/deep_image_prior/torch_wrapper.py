@@ -10,29 +10,20 @@ class _objectiveFunctionModule3D(torch.autograd.Function):
             x, 
             image_template, 
             sirf_obj):
-
+        ctx.device = x.device
         ctx.sirf_obj = sirf_obj
-        ctx.x = x.squeeze()
         ctx.image_template = image_template
-        x_np = x.detach().cpu().numpy().squeeze()
-        x_np = ctx.image_template.fill(x_np)
-        value_np = ctx.sirf_obj.get_value(x_np)
-        return torch.tensor(value_np).to(x.device)
+        ctx.x = x.detach().cpu().numpy().squeeze()
+        ctx.x = ctx.image_template.fill(ctx.x)
+        value_np = ctx.sirf_obj.get_value(ctx.x)
+        return torch.tensor(value_np).to(ctx.device)
 
     @staticmethod
     def backward(
             ctx, 
             in_grad):
-
-        grads_np = ctx.sirf_obj.get_gradient(
-            ctx.image_template.fill(
-                ctx.x.detach().cpu().numpy()
-                )
-            ).as_array()
-
-        grads = torch.from_numpy(
-            grads_np).to(in_grad.device
-            ) * in_grad
+        grads_np = ctx.sirf_obj.get_gradient(ctx.x).as_array()
+        grads = torch.from_numpy(grads_np).to(ctx.device) * in_grad
         return grads.unsqueeze(dim=0), None, None, None
 
 class ObjectiveFunctionModule3D(torch.nn.Module):
@@ -40,9 +31,7 @@ class ObjectiveFunctionModule3D(torch.nn.Module):
         super().__init__()
         self.image_template = image_template.clone()
         self.obj_fun = obj_fun
-
     def forward(self, out):
-
         obj_fun_value_batch = torch.zeros(1, device=out.device)
         for out_i in out:
             obj_fun_value = _objectiveFunctionModule3D.apply(

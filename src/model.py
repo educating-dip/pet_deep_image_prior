@@ -53,7 +53,7 @@ class ModelClass(object):
                 dataset.quality_metrics,
                 dataset.sensitivity_image,
                 writer)
-        elif cfg.model.name == 'unet' or cfg.model.name == 'unet_3d':
+        elif cfg.model.name == 'unet' or cfg.model.name == 'unet_3d' or cfg.model.name == 'deepdecoder_3d' or cfg.model.name == 'pet_unet':
             unetprior(
                 cfg,
                 dataset,
@@ -61,12 +61,6 @@ class ModelClass(object):
     
         elif cfg.model.name == 'dp_unet':
             dpunetprior(
-                cfg,
-                dataset,
-                writer)
-
-        elif cfg.model.name == 'deepdecoder':
-            deepdecoderprior(
                 cfg,
                 dataset,
                 writer)
@@ -164,7 +158,7 @@ def bsrem(
     for i in range(num_epochs):
         preconditioner = ((x_k+delta)/(sensitivity_image))
         tmp = preconditioner.as_array()
-        tmp[outside_fov] = 0
+        tmp[outside_fov] = 0.
         preconditioner.fill(tmp)
         alpha_k = 1/(eta*i+1)
         print(f"Epoch {i+1}")
@@ -176,19 +170,17 @@ def bsrem(
         for j in range(num_subsets):
             ssg = objective_function.get_subset_gradient(x_k, ordered_subsets[j])
             precond_ssg = preconditioner * num_subsets * ssg
-            x_k = x_k + alpha_k * precond_ssg
-            print(f"SSGradient norm {ssg.norm()}")
+            x_k = x_k + alpha_k * precond_ssg            
+            if ssg.norm() > 1e6:
+                print("Norm too high")
+                raise StopIteration
             tmp = x_k.as_array()
-            tmp[tmp<0] = 0
+            tmp[tmp<0] = 0.
             x_k.fill(tmp)
-        obj_val = objective_function.value(x_k)
-        writer.add_scalar('OBJ_FUNC', obj_val, i+1)
-        (crc, stdev) = \
-            quality_metrics.get_all_metrics(x_k.as_array())
-        for j in range(len(crc)):
-            writer.add_scalar(str(j) + '_CRC_' + quality_metrics.names_a[j], crc[j], i+1)
-            writer.add_scalar(str(j) + '_STDEV_' + quality_metrics.names_b[j], stdev[j], i+1)
-        x_k.write(f'Volume_epoch_{i+1}.hv')
+        if i % 10 == 0:
+            obj_val = objective_function.value(x_k)
+            writer.add_scalar('OBJ_FUNC', obj_val, i+1)
+    x_k.write(f'Final_Volume.hv')
     writer.close()
 
 def svrg(
@@ -252,6 +244,7 @@ def unetprior(
             torch.random.manual_seed(cfg.model.torch_manual_seed)
 
     # Model
+    every_iter_save = False
     if cfg.model.name == 'unet': 
         model = UNet(
                     1,
@@ -278,17 +271,28 @@ def unetprior(
                       approx_conv3d_at_scales=cfg.model.arch.approx_conv3d_at_scales, 
                       approx_conv3d_low_rank_dim=cfg.model.arch.approx_conv3d_low_rank_dim
                       )
-    else: 
+    elif cfg.model.name == 'deepdecoder_3d':
+        model = DeepDecoder3D(
+            output_channels=cfg.model.arch.output_channels,
+            output_size=(47,128,128),
+            num_channels_up=cfg.model.arch.num_channels_up
+        )
+    elif cfg.model.name == 'pet_unet':
+        model = PETUNet(ch = 16, size = (47,128,128))
+        every_iter_save = cfg.model.every_iter_save
+    else:
         NotImplemented
 
     # Input
-    if cfg.model.random_input:
+    if cfg.model.random_input and cfg.model.name != 'deepdecoder_3d':
         if dataset.initial.shape[0] == 1:
             input = 0.1 * torch.randn(1, * dataset.initial.shape)
         elif dataset.initial.shape[0] != 1:
             input = 0.1 * torch.randn(1, 1, * dataset.initial.shape)
         else:
             NotImplemented
+    elif cfg.model.random_input and cfg.model.name == 'deepdecoder_3d':
+        input = 0.1 * torch.randn(1, cfg.model.arch.num_channels_up, 4, 8, 8)
     else:
         NotImplemented
     # Pre-trained
@@ -317,9 +321,11 @@ def unetprior(
                         obj_fun_module,
                         iterations,
                         lr,
-                        writer)
+                        writer,
+                        every_iter_save)
 
-    reconstructor.reconstruct(dataset.quality_metrics)
+    reconstructor.reconstruct(dataset.quality_metrics,
+        use_scheduler=cfg.model.use_scheduler)
 
 
 def deepdecoderprior(

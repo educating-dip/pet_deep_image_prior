@@ -1,0 +1,12 @@
+name: deepdecoder_3d
+arch:
+  output_channels: 1
+  num_channels_up: 128
+optim:
+  lr: 1e-3
+  iterations: 10000
+torch_manual_seed: 1669
+random_input: True
+load_pretrain_model: False
+recon_from_randn: True
+use_scheduler: True
