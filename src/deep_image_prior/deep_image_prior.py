@@ -79,23 +79,23 @@ class DeepImagePriorReconstructor:
 
                 self.writer.add_scalar('loss', loss.item(),  i)
                 pbar.set_description("PET-DIP loss {:.3E}".format(loss.item()))
-                if i % 1000 == 0:
-                    if i  > 1000:
+                if i % 100 == 0:
+                    if i  >= 100:
                         crc, stdev = image_metrics.get_all_metrics(
                             output[0, 0,...].detach().cpu().numpy()
                             )
                         for j in range(len(crc)):
                             self.writer.add_scalar(str(j) + '_CRC_' + image_metrics.names_a[j], crc[j], i)
                             self.writer.add_scalar(str(j) + '_STDEV_' + image_metrics.names_b[j], stdev[j], i)
-                if i % 1000 == 0:
-                    if i  > 1000:
+                if i % 100 == 0:
+                    if i >= 100:
                         torch.save(best_output[0, 0,...],f"Best_volume_epoch_{i}.torch")
-                        torch.save({
+                        """ torch.save({
                             'epoch': i,
                             'model_state_dict': self.model.state_dict(),
                             'optimizer_state_dict': self.optimizer.state_dict(),
                             'loss': loss,
-                            }, f"checkpoint_epoch_{i}.torch")
+                            }, f"checkpoint_epoch_{i}.torch") """
             
 
         torch.save(best_output[0, 0,...],f"Final_best_volume.torch")

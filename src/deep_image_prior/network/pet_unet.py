@@ -84,12 +84,15 @@ class PETUNet(nn.Module):
         return self.output(x)
 
 if __name__ == "__main__":
-    model = PETUNet().cuda()
-    y = torch.ones((1,1,47,128,128)).cuda()
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats() 
+    val = 8*38
+    
+    model = PETUNet(size = (val,val,val)).cuda()
+    y = torch.ones((1,1,val,val,val)).cuda()
     x = model(y)
-    print(torch.cuda.memory_summary())
+    print(torch.cuda.memory_summary(abbreviated=True))
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
     x.mean().backward()
-    print(torch.cuda.memory_summary())
-    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
-    print(params)
+    print(torch.cuda.memory_summary(abbreviated=True))
