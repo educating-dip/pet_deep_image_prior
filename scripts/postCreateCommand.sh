@@ -1,0 +1,1 @@
+mamba env update --file scripts/postcreaterequirements.yml

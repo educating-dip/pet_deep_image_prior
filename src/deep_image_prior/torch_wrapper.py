@@ -5,11 +5,7 @@ import torch
 
 class _objectiveFunctionModule3D(torch.autograd.Function):
     @staticmethod
-    def forward(
-            ctx, 
-            x, 
-            image_template, 
-            sirf_obj):
+    def forward( ctx, x, image_template, sirf_obj):
         ctx.device = x.device
         ctx.sirf_obj = sirf_obj
         ctx.image_template = image_template
@@ -29,9 +25,28 @@ class _objectiveFunctionModule3D(torch.autograd.Function):
 class ObjectiveFunctionModule3D(torch.nn.Module):
     def __init__(self, image_template, obj_fun):
         super().__init__()
+        """ Objective function module for integration of SIRF and PyTorch
+
+        Attributes:
+            image_template: Template needed to 
+            obj_fun  The locale where these birds congregate to reproduce.
+        """
         self.image_template = image_template.clone()
         self.obj_fun = obj_fun
     def forward(self, out):
+        """
+        Objective function module for integration of SIRF and PyTorch
+
+        Args:
+            image_template: This is the first param.
+            obj_fun: This is a second param.
+
+        Returns:
+            This is a description of what is returned.
+
+        Raises:
+            KeyError: Raises an exception.
+        """
         obj_fun_value_batch = torch.zeros(1, device=out.device)
         for out_i in out:
             obj_fun_value = _objectiveFunctionModule3D.apply(

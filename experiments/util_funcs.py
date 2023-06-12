@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-roi_path = "/home/user/PET_DIP/D690XCATnonTOF/ROI_volumes/3D"
+roi_path = "/home/user/sirf/D690XCATnonTOF/ROI_volumes/3D"
 roi_names = ["AbdominalWall","Liver","Lung","Spine"]
 
 AbdominalWallLesionROI = np.load(roi_path + f"/ROI_AbdominalWallTumour.npy")
